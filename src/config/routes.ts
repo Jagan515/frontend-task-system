@@ -1,16 +1,18 @@
 import React from 'react';
 import { Dashboard } from '../pages/Dashboard';
 import { LoginPage } from '../pages/LoginPage';
-import { CreateTaskPage } from '../pages/CreateTaskPage';
+import { SignupPage } from '../pages/SignupPage';
 import { AuditLogPage } from '../pages/AuditLogPage';
+import { TasksPage } from '../pages/TasksPage';
+import { UserRole } from '../types/auth';
 
 export interface RouteConfig {
   path: string;
   element: React.FC;
-  label?: string;           // Optional: for sidebar or navigation
-  isProtected: boolean;     // Whether login is required
-  permissions?: string[];   // Allowed roles (e.g., ['CONTRIBUTOR', 'POWER_USER'])
-  hideInMenu?: boolean;     // For routes like /login
+  label?: string;
+  isProtected: boolean;
+  permissions?: UserRole[];   // Use enum for permissions
+  hideInMenu?: boolean;
 }
 
 export const APP_ROUTES: RouteConfig[] = [
@@ -21,24 +23,38 @@ export const APP_ROUTES: RouteConfig[] = [
     hideInMenu: true,
   },
   {
+    path: '/signup',
+    element: SignupPage,
+    isProtected: false,
+    hideInMenu: true,
+  },
+  {
     path: '/',
     element: Dashboard,
     label: 'Dashboard',
     isProtected: true,
-    permissions: ['CONSUMER', 'CONTRIBUTOR', 'POWER_USER'],
+    permissions: [UserRole.CONSUMER, UserRole.CONTRIBUTOR, UserRole.POWER_USER],
+  },
+  {
+    path: '/tasks',
+    element: TasksPage,
+    label: 'Tasks',
+    isProtected: true,
+    permissions: [UserRole.CONSUMER, UserRole.CONTRIBUTOR, UserRole.POWER_USER],
   },
   {
     path: '/tasks/create',
-    element: CreateTaskPage,
+    element: Dashboard, // Dummy element, not used as a page anymore
     label: 'Create Task',
     isProtected: true,
-    permissions: ['CONTRIBUTOR', 'POWER_USER'],
+    permissions: [UserRole.CONTRIBUTOR, UserRole.POWER_USER],
+    hideInMenu: true,
   },
   {
     path: '/admin/audit-logs',
     element: AuditLogPage,
     label: 'Audit Logs',
     isProtected: true,
-    permissions: ['POWER_USER'],
+    permissions: [UserRole.POWER_USER],
   }
 ];
