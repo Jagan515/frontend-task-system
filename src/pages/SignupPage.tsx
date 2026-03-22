@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
 import { UserRole, UserRoleLabels } from '../types/auth';
+
 import './Auth.css';
 
 export const SignupPage: React.FC = () => {
@@ -55,6 +56,7 @@ export const SignupPage: React.FC = () => {
     );
   }, [formData]);
 
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
@@ -68,12 +70,15 @@ export const SignupPage: React.FC = () => {
     setErrors(prev => ({ ...prev, general: undefined }));
 
     try {
+      // Note: Adjust the endpoint as per your backend implementation
+
       await api.post('/signup', {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
         role: formData.role
+
       });
       navigate('/login', { state: { message: 'Account created successfully! Please log in.' } });
     } catch (err: unknown) {

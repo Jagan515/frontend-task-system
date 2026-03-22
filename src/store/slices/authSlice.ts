@@ -24,6 +24,7 @@ const parseToken = (token: string): User | null => {
     return {
       id: typeof idVal === 'string' ? parseInt(idVal, 10) : idVal,
       email: decoded.email || decoded.name || '',
+    // LB4 profile properties can be in different fields
       role: (decoded.role as UserRole) || UserRole.CONSUMER,
     };
   } catch {

@@ -2,11 +2,10 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
-
 interface RoleProtectedRouteProps {
   children: React.ReactNode;
   isProtected: boolean;
-  permissions?: string[];
+  permissions?: UserRole[];
 }
 
 export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({ 
@@ -25,7 +24,6 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
   }
 
   if (permissions && user && !permissions.includes(user.role)) {
-    // If authenticated but role not allowed, redirect to home (or an unauthorized page)
     return <Navigate to="/" replace />;
   }
 
