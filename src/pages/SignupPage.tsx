@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
+import { UserRole, UserRoleLabels } from '../types/auth';
+
 import './Auth.css';
 
 export const SignupPage: React.FC = () => {
@@ -9,12 +11,13 @@ export const SignupPage: React.FC = () => {
     lastName: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: UserRole.CONSUMER as string
   });
   
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [errors, setErrors] = useState<{ [key: string]: string | undefined }>({});
   const [isFormValid, setIsFormValid] = useState(false);
 
   const navigate = useNavigate();
@@ -53,7 +56,8 @@ export const SignupPage: React.FC = () => {
     );
   }, [formData]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
   };
@@ -67,11 +71,14 @@ export const SignupPage: React.FC = () => {
 
     try {
       // Note: Adjust the endpoint as per your backend implementation
+
       await api.post('/signup', {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        role: formData.role
+
       });
       navigate('/login', { state: { message: 'Account created successfully! Please log in.' } });
     } catch (err: unknown) {
@@ -133,6 +140,21 @@ export const SignupPage: React.FC = () => {
               required
             />
             {errors.email && <div className="error-message">{errors.email}</div>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="role">Account Type</label>
+            <select
+              id="role"
+              className="auth-input"
+              value={formData.role}
+              onChange={handleChange}
+              disabled={isLoading}
+            >
+              {Object.entries(UserRoleLabels).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
           </div>
 
           <div className="form-group">

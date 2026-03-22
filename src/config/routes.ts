@@ -2,8 +2,8 @@ import React from 'react';
 import { Dashboard } from '../pages/Dashboard';
 import { LoginPage } from '../pages/LoginPage';
 import { SignupPage } from '../pages/SignupPage';
-import { CreateTaskPage } from '../pages/CreateTaskPage';
 import { AuditLogPage } from '../pages/AuditLogPage';
+import { TasksPage } from '../pages/TasksPage';
 import { UserRole } from '../types/auth';
 
 export interface RouteConfig {
@@ -36,11 +36,19 @@ export const APP_ROUTES: RouteConfig[] = [
     permissions: [UserRole.CONSUMER, UserRole.CONTRIBUTOR, UserRole.POWER_USER],
   },
   {
+    path: '/tasks',
+    element: TasksPage,
+    label: 'Tasks',
+    isProtected: true,
+    permissions: [UserRole.CONSUMER, UserRole.CONTRIBUTOR, UserRole.POWER_USER],
+  },
+  {
     path: '/tasks/create',
-    element: CreateTaskPage,
+    element: Dashboard, // Dummy element, not used as a page anymore
     label: 'Create Task',
     isProtected: true,
     permissions: [UserRole.CONTRIBUTOR, UserRole.POWER_USER],
+    hideInMenu: true,
   },
   {
     path: '/admin/audit-logs',

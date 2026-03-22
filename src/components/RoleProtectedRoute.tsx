@@ -1,9 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { RootState } from '../store';
-import { UserRole } from '../types/auth';
-
+import type { RootState } from '../store';
 interface RoleProtectedRouteProps {
   children: React.ReactNode;
   isProtected: boolean;
