@@ -11,31 +11,63 @@ interface BulkActionBarProps {
 
 export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedIds, onClear }) => {
   const dispatch = useDispatch<AppDispatch>();
-  const users = useSelector((state: RootState) => state.tasks.users);
+  const { users, items: tasks } = useSelector((state: RootState) => state.tasks);
   const currentUser = useSelector((state: RootState) => state.auth.user);
 
   if (selectedIds.length === 0) return null;
 
   const isConsumer = currentUser?.role === 'CONSUMER';
+  const isContributor = currentUser?.role === 'CONTRIBUTOR';
+
+  const getAuthorizedIds = () => {
+    if (currentUser?.role === 'POWER_USER') return selectedIds;
+    if (isContributor) {
+      return selectedIds.filter(id => {
+        const task = tasks.find(t => t.id === id);
+        return task?.createdBy === currentUser.id;
+      });
+    }
+    return selectedIds; // CONSUMER check handled per task in backend
+  };
 
   const handleBulkStatus = (status: string) => {
-    dispatch(bulkUpdateTasks({ ids: selectedIds, data: { status: status as any } }));
+    const idsToUpdate = getAuthorizedIds();
+    if (idsToUpdate.length === 0 && isContributor) {
+      alert('You can only update tasks you created.');
+      return;
+    }
+    dispatch(bulkUpdateTasks({ ids: idsToUpdate, data: { status: status as any } }));
     onClear();
   };
 
   const handleBulkPriority = (priority: string) => {
-    dispatch(bulkUpdateTasks({ ids: selectedIds, data: { priority: priority as any } }));
+    const idsToUpdate = getAuthorizedIds();
+    if (idsToUpdate.length === 0 && isContributor) {
+      alert('You can only update tasks you created.');
+      return;
+    }
+    dispatch(bulkUpdateTasks({ ids: idsToUpdate, data: { priority: priority as any } }));
     onClear();
   };
 
   const handleBulkAssign = (userId: number) => {
-    dispatch(bulkAssignTasks({ ids: selectedIds, userIds: [userId] }));
+    const idsToUpdate = getAuthorizedIds();
+    if (idsToUpdate.length === 0 && isContributor) {
+      alert('You can only assign tasks you created.');
+      return;
+    }
+    dispatch(bulkAssignTasks({ ids: idsToUpdate, userIds: [userId] }));
     onClear();
   };
 
   const handleBulkDelete = () => {
-    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} tasks?`)) {
-      dispatch(bulkDeleteTasks(selectedIds));
+    const idsToDelete = getAuthorizedIds();
+    if (idsToDelete.length === 0 && isContributor) {
+      alert('You can only delete tasks you created.');
+      return;
+    }
+    if (window.confirm(`Are you sure you want to delete ${idsToDelete.length} tasks?`)) {
+      dispatch(bulkDeleteTasks(idsToDelete));
       onClear();
     }
   };

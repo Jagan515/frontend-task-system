@@ -77,12 +77,13 @@ const SaveIcon = () => (
 
 export const TasksPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { items: tasks, status, users, filterPresets } = useSelector((state: RootState) => state.tasks);
+  const { items: tasks, status, users, filterPresets, error: reduxError } = useSelector((state: RootState) => state.tasks);
   const user = useSelector((state: RootState) => state.auth.user);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   // Filter & Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -176,6 +177,39 @@ export const TasksPage: React.FC = () => {
 
   return (
     <div className="tasks-page-container">
+      {(reduxError || localError) && (
+        <div 
+          className="error-banner" 
+          style={{
+            background: '#fee2e2',
+            color: '#b91c1c',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            marginBottom: '16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            border: '1px solid #fecaca',
+            fontSize: '14px',
+            fontWeight: 500
+          }}
+        >
+          <span>{reduxError || localError}</span>
+          <button 
+            onClick={() => setLocalError(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#b91c1c',
+              fontSize: '20px',
+              cursor: 'pointer',
+              lineHeight: 1
+            }}
+          >
+            &times;
+          </button>
+        </div>
+      )}
       <BulkActionBar 
         selectedIds={selectedIds} 
         onClear={() => setSelectedIds([])} 
