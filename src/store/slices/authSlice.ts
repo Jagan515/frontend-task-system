@@ -1,11 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { jwtDecode } from 'jwt-decode';
-
-interface User {
-  id: string;
-  email: string;
-  role: string;
-}
+import { User, UserRole } from '../../types/auth';
 
 interface AuthState {
   user: User | null;
@@ -13,16 +8,24 @@ interface AuthState {
   isAuthenticated: boolean;
 }
 
+interface JWTPayload {
+  id?: string;
+  sub?: string;
+  name?: string;
+  email?: string;
+  role?: string;
+}
+
 const parseToken = (token: string): User | null => {
   try {
-    const decoded: any = jwtDecode(token);
+    const decoded = jwtDecode<JWTPayload>(token);
     // LB4 profile properties can be in different fields
     return {
       id: decoded.id || decoded.sub || '',
       email: decoded.name || decoded.email || '',
-      role: decoded.role || 'CONSUMER',
+      role: (decoded.role as UserRole) || UserRole.CONSUMER,
     };
-  } catch (e) {
+  } catch {
     return null;
   }
 };
