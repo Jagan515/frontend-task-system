@@ -7,6 +7,7 @@ import {
   fetchTaskAssignees,
   type Task
 } from '../store/slices/tasksSlice';
+import { extractErrorMessage } from '../api/axios';
 import './TaskModal.css';
 
 interface TaskModalProps {
@@ -21,39 +22,40 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
   const currentUser = useSelector((state: RootState) => state.auth.user);
   
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    dueDate: new Date().toISOString().split('T')[0],
-    priority: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
-    status: 'PENDING' as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED',
+    title: taskToEdit?.title || '',
+    description: taskToEdit?.description || '',
+    dueDate: taskToEdit ? new Date(taskToEdit.dueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    priority: (taskToEdit?.priority || 'MEDIUM') as 'LOW' | 'MEDIUM' | 'HIGH',
+    status: (taskToEdit?.status || 'PENDING') as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED',
     assignees: [] as number[],
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let promise: any;
     if (isOpen) {
+      setError(null);
       if (taskToEdit) {
+        // Sync formData if taskToEdit changes after mount
         setFormData({
           title: taskToEdit.title,
           description: taskToEdit.description || '',
           dueDate: new Date(taskToEdit.dueDate).toISOString().split('T')[0],
           priority: taskToEdit.priority,
           status: taskToEdit.status,
-          assignees: [],
+          assignees: selectedTaskAssignees,
         });
-        dispatch(fetchTaskAssignees(taskToEdit.id));
-      } else {
-        setFormData({
-          title: '',
-          description: '',
-          dueDate: new Date().toISOString().split('T')[0],
-          priority: 'MEDIUM',
-          status: 'PENDING',
-          assignees: [],
-        });
+        promise = dispatch(fetchTaskAssignees(taskToEdit.id));
       }
     }
+
+    return () => {
+      if (promise) {
+        promise.abort();
+      }
+    };
   }, [isOpen, taskToEdit, dispatch]);
 
   useEffect(() => {
@@ -65,21 +67,39 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
   if (!isOpen) return null;
 
   const isOwner = taskToEdit?.createdBy === currentUser?.id;
-  const isConsumer = currentUser?.role === 'CONSUMER';
-  const isManager = currentUser?.role === 'CONTRIBUTOR';
+  const isUser = currentUser?.role === 'user';
+  const isManager = currentUser?.role === 'manager';
 
   // Can only edit non-status fields if Admin, or if Manager & Owner
-  const canEditFull = currentUser?.role === 'POWER_USER' || (isManager && isOwner) || (!taskToEdit && !isConsumer);
+  const canEditFull = currentUser?.role === 'admin' || (isManager && isOwner) || (!taskToEdit && !isUser);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
     let payload: any;
-    if (taskToEdit && isConsumer) {
-      // Consumers can only send status
+    if (taskToEdit && !canEditFull) {
+      // If we don't have full edit permission, we can ONLY update status
       payload = { status: formData.status };
     } else {
+      // Validation: Title cannot be empty
+      if (!formData.title.trim()) {
+        setError('Title is required.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validation: Due date cannot be in the past
+      const dueDate = new Date(formData.dueDate);
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      if (dueDate < now) {
+        setError('Due date cannot be in the past.');
+        setIsSubmitting(false);
+        return;
+      }
+
       payload = {
         ...formData,
         dueDate: new Date(formData.dueDate).toISOString(),
@@ -96,7 +116,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
         await dispatch(createTask(payload)).unwrap();
       }
       onClose();
-    } catch (err) {
+    } catch (err: unknown) {
+      setError(extractErrorMessage(err));
       console.error('Failed to save task:', err);
     } finally {
       setIsSubmitting(false);
@@ -120,6 +141,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
           <h2>{taskToEdit ? 'Edit Task' : 'Create New Task'}</h2>
           <button className="modal-close" onClick={onClose}>&times;</button>
         </header>
+
+        {error && <div className="error-banner" style={{ margin: '16px', borderRadius: '4px' }}>{error}</div>}
 
         <form onSubmit={handleSubmit} className="task-form">
           <div className="form-group">
@@ -156,6 +179,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
                 type="date"
                 required
                 className="form-input"
+                min={new Date().toISOString().split('T')[0]}
                 value={formData.dueDate}
                 onChange={e => setFormData({...formData, dueDate: e.target.value})}
                 disabled={!canEditFull}
@@ -204,7 +228,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
                   className={`assignee-chip ${formData.assignees.includes(u.id) ? 'selected' : ''} ${!canEditFull ? 'disabled' : ''}`}
                   onClick={() => toggleAssignee(u.id)}
                 >
-                  {u.firstName ? `${u.firstName} ${u.lastName || ''}` : u.email}
+                  {u.username || (u.firstName ? `${u.firstName} ${u.lastName || ''}` : u.email)}
                 </div>
               ))}
             </div>

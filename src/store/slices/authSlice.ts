@@ -14,6 +14,7 @@ interface JWTPayload {
   name?: string;
   email?: string;
   role?: string;
+  passwordResetRequired?: boolean;
 }
 
 const parseToken = (token: string): User | null => {
@@ -25,7 +26,8 @@ const parseToken = (token: string): User | null => {
       id: typeof idVal === 'string' ? parseInt(idVal, 10) : idVal,
       email: decoded.email || decoded.name || '',
     // LB4 profile properties can be in different fields
-      role: (decoded.role as UserRole) || UserRole.CONSUMER,
+      role: (decoded.role as UserRole) || UserRole.USER,
+      passwordResetRequired: decoded.passwordResetRequired,
     };
   } catch {
     return null;

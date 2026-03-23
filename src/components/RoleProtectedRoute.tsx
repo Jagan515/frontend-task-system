@@ -1,8 +1,9 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 import { type UserRole } from '../types/auth';
+
 interface RoleProtectedRouteProps {
   children: React.ReactNode;
   isProtected: boolean;
@@ -15,6 +16,7 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
   permissions 
 }) => {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+  const location = useLocation();
 
   if (!isProtected) {
     return <>{children}</>;
@@ -22,6 +24,11 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Force password reset if required
+  if (user?.passwordResetRequired && location.pathname !== '/reset-password') {
+    return <Navigate to="/reset-password" replace />;
   }
 
   if (permissions && user && !permissions.includes(user.role)) {
