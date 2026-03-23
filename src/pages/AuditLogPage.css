@@ -1,0 +1,149 @@
+.audit-page-container {
+  padding: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: left;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.audit-header {
+  margin-bottom: 32px;
+}
+
+.audit-header h1 {
+  font-size: 32px;
+  color: var(--text-h);
+  margin: 0 0 8px 0;
+}
+
+.audit-header p {
+  color: var(--text);
+  margin: 0;
+}
+
+.audit-filters {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.audit-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  overflow: hidden;
+}
+
+.audit-table-wrapper {
+  overflow-x: auto;
+}
+
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.audit-table th {
+  padding: 16px 24px;
+  background: var(--social-bg);
+  color: var(--text-h);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.audit-table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+
+.audit-table tr:last-child td {
+  border-bottom: none;
+}
+
+.audit-table tr:hover td {
+  background: rgba(0,0,0,0.01);
+}
+
+.action-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+}
+
+.entity-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.entity-type {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.entity-id {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.performed-by {
+  font-weight: 500;
+}
+
+.timestamp {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.details-cell {
+  max-width: 350px;
+}
+
+.details-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.detail-item {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-key {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.more-changes {
+  color: var(--accent);
+  font-weight: 500;
+  cursor: help;
+  font-size: 11px;
+}
+
+@media (max-width: 768px) {
+  .audit-page-container {
+    padding: 20px;
+  }
+  
+  .audit-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

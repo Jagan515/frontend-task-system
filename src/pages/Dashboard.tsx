@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import type { RootState, AppDispatch } from '../store';
-import { fetchTasks, updateTask, fetchUsers, selectTask, type Task } from '../store/slices/tasksSlice';
+import { fetchInitialData, updateTask, selectTask, type Task } from '../store/slices/tasksSlice';
 import { APP_ROUTES } from '../config/routes';
 import { TaskModal } from '../components/TaskModal';
 import './Dashboard.css';
@@ -39,18 +39,13 @@ const CalendarIcon = () => (
 
 export const Dashboard: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { items: tasks, status, users } = useSelector((state: RootState) => state.tasks);
+  const { items: tasks } = useSelector((state: RootState) => state.tasks);
   const user = useSelector((state: RootState) => state.auth.user);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    if (status === 'idle') {
-      dispatch(fetchTasks());
-    }
-    if (users.length === 0) {
-      dispatch(fetchUsers());
-    }
-  }, [status, users.length, dispatch]);
+    dispatch(fetchInitialData());
+  }, [dispatch]);
 
   const handleComplete = (id: number) => {
     dispatch(updateTask({ id, data: { status: 'COMPLETED' } }));
@@ -87,7 +82,7 @@ export const Dashboard: React.FC = () => {
 
   // Determine if user can create tasks (based on APP_ROUTES permissions for /tasks/create)
   const createTaskRoute = APP_ROUTES.find(r => r.path === '/tasks/create');
-  const canCreateTask = user && user.role !== 'CONSUMER' && createTaskRoute?.permissions?.includes(user.role);
+  const canCreateTask = user && user.role !== 'user' && createTaskRoute?.permissions?.includes(user.role);
 
   // Fix duplication: Exclude the 'Dashboard' itself from the nav items loop
   return (

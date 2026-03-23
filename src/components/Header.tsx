@@ -55,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({ title }) => {
           {isAuthenticated ? (
             <div className="user-profile">
               <div className="user-info-text">
-                <span className="user-name">{user?.email?.split('@')[0]}</span>
+                <span className="user-name">{user?.username || user?.email?.split('@')[0]}</span>
                 <span className="user-role-badge">
                   {user ? UserRoleLabels[user.role] : ''}
                 </span>
