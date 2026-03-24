@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../store';
+import { UserRole } from '../types/auth';
 import { 
   createTask, 
   updateTask, 
   fetchTaskAssignees,
   type Task
 } from '../store/slices/tasksSlice';
+import { Modal } from './common/Modal';
 import './TaskModal.css';
 
 interface TaskModalProps {
@@ -30,9 +32,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
+      setError(null);
       if (taskToEdit) {
         setFormData({
           title: taskToEdit.title,
@@ -62,27 +66,29 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
     }
   }, [selectedTaskAssignees, taskToEdit]);
 
-  if (!isOpen) return null;
-
   const isOwner = taskToEdit?.createdBy === currentUser?.id;
-  const isConsumer = currentUser?.role === 'CONSUMER';
-  const isManager = currentUser?.role === 'CONTRIBUTOR';
+  const isUser = currentUser?.role === UserRole.USER;
+  const isManager = currentUser?.role === UserRole.MANAGER;
 
   // Can only edit non-status fields if Admin, or if Manager & Owner
-  const canEditFull = currentUser?.role === 'POWER_USER' || (isManager && isOwner) || (!taskToEdit && !isConsumer);
+  const canEditFull = currentUser?.role === UserRole.ADMIN || (isManager && isOwner) || (!taskToEdit && !isUser);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
     let payload: any;
-    if (taskToEdit && isConsumer) {
-      // Consumers can only send status
+    if (taskToEdit && isUser) {
+      // Users can only send status
       payload = { status: formData.status };
     } else {
       payload = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
         dueDate: new Date(formData.dueDate).toISOString(),
+        priority: formData.priority,
+        assignees: formData.assignees,
       };
     }
 
@@ -96,8 +102,9 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
         await dispatch(createTask(payload)).unwrap();
       }
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save task:', err);
+      setError(err.response?.data?.error?.message || err.message || 'Failed to save task');
     } finally {
       setIsSubmitting(false);
     }
@@ -113,111 +120,125 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
     }));
   };
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container" onClick={e => e.stopPropagation()}>
-        <header className="modal-header">
-          <h2>{taskToEdit ? 'Edit Task' : 'Create New Task'}</h2>
-          <button className="modal-close" onClick={onClose}>&times;</button>
-        </header>
+  const modalFooter = (
+    <>
+      <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>
+      <button 
+        type="submit" 
+        form="task-form"
+        className="btn-save" 
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? 'Saving...' : (taskToEdit ? 'Update Task' : 'Create Task')}
+      </button>
+    </>
+  );
 
-        <form onSubmit={handleSubmit} className="task-form">
+  return (
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title={taskToEdit ? 'Edit Task' : 'Create New Task'}
+      footer={modalFooter}
+    >
+      {error && <div className="error-banner" style={{ 
+        padding: '12px', 
+        backgroundColor: '#fff2f0', 
+        border: '1px solid #ffccc7', 
+        borderRadius: '8px',
+        color: '#ff4d4f',
+        marginBottom: '20px',
+        fontSize: '14px'
+      }}>{error}</div>}
+      <form id="task-form" onSubmit={handleSubmit} className="task-form" style={{ padding: 0 }}>
+        <div className="form-group">
+          <label htmlFor="title">Title</label>
+          <input 
+            id="title"
+            required
+            className="form-input"
+            value={formData.title}
+            onChange={e => setFormData({...formData, title: e.target.value})}
+            placeholder="What needs to be done?"
+            disabled={!canEditFull}
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="description">Description</label>
+          <textarea 
+            id="description"
+            className="form-input"
+            rows={3}
+            value={formData.description}
+            onChange={e => setFormData({...formData, description: e.target.value})}
+            placeholder="Add more details..."
+            disabled={!canEditFull}
+          />
+        </div>
+
+        <div className="form-row">
           <div className="form-group">
-            <label htmlFor="title">Title</label>
+            <label htmlFor="dueDate">Due Date</label>
             <input 
-              id="title"
+              id="dueDate"
+              type="date"
               required
               className="form-input"
-              value={formData.title}
-              onChange={e => setFormData({...formData, title: e.target.value})}
-              placeholder="What needs to be done?"
+              value={formData.dueDate}
+              onChange={e => setFormData({...formData, dueDate: e.target.value})}
               disabled={!canEditFull}
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="description">Description</label>
-            <textarea 
-              id="description"
+            <label htmlFor="priority">Priority</label>
+            <select 
+              id="priority"
               className="form-input"
-              rows={3}
-              value={formData.description}
-              onChange={e => setFormData({...formData, description: e.target.value})}
-              placeholder="Add more details..."
+              value={formData.priority}
+              onChange={e => setFormData({...formData, priority: e.target.value as any})}
               disabled={!canEditFull}
-            />
+            >
+              <option value="LOW">Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+            </select>
           </div>
+        </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="dueDate">Due Date</label>
-              <input 
-                id="dueDate"
-                type="date"
-                required
-                className="form-input"
-                value={formData.dueDate}
-                onChange={e => setFormData({...formData, dueDate: e.target.value})}
-                disabled={!canEditFull}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="priority">Priority</label>
-              <select 
-                id="priority"
-                className="form-input"
-                value={formData.priority}
-                onChange={e => setFormData({...formData, priority: e.target.value as any})}
-                disabled={!canEditFull}
-              >
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-              </select>
-            </div>
-          </div>
-
-          {taskToEdit && (
-            <div className="form-group">
-              <label htmlFor="status">Status</label>
-              <select 
-                id="status"
-                className="form-input"
-                value={formData.status}
-                onChange={e => setFormData({...formData, status: e.target.value as any})}
-              >
-                <option value="PENDING">Pending</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="CANCELLED">Cancelled</option>
-              </select>
-            </div>
-          )}
-
+        {taskToEdit && (
           <div className="form-group">
-            <label>Assignees</label>
-            <div className="assignee-selector">
-              {users.map(u => (
-                <div 
-                  key={u.id} 
-                  className={`assignee-chip ${formData.assignees.includes(u.id) ? 'selected' : ''} ${!canEditFull ? 'disabled' : ''}`}
-                  onClick={() => toggleAssignee(u.id)}
-                >
-                  {u.firstName ? `${u.firstName} ${u.lastName || ''}` : u.email}
-                </div>
-              ))}
-            </div>
+            <label htmlFor="status">Status</label>
+            <select 
+              id="status"
+              className="form-input"
+              value={formData.status}
+              onChange={e => setFormData({...formData, status: e.target.value as any})}
+            >
+              <option value="PENDING">Pending</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
           </div>
+        )}
 
-          <div className="modal-actions">
-            <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn-save" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : (taskToEdit ? 'Update Task' : 'Create Task')}
-            </button>
+        <div className="form-group">
+          <label>Assignees</label>
+          <div className="assignee-selector">
+            {users.map(u => (
+              <div 
+                key={u.id} 
+                className={`assignee-chip ${formData.assignees.includes(u.id) ? 'selected' : ''} ${!canEditFull ? 'disabled' : ''}`}
+                onClick={() => toggleAssignee(u.id)}
+              >
+                {u.username || (u.firstName ? `${u.firstName} ${u.lastName || ''}` : u.email)}
+              </div>
+            ))}
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+      </form>
+    </Modal>
   );
 };

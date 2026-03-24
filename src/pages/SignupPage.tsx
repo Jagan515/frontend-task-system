@@ -12,7 +12,7 @@ export const SignupPage: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: UserRole.CONSUMER as string
+    role: UserRole.ADMIN as string
   });
   
   const [showPassword, setShowPassword] = useState(false);
@@ -98,8 +98,8 @@ export const SignupPage: React.FC = () => {
         {errors.general && <div className="error-message" style={{ textAlign: 'center', marginBottom: '16px' }}>{errors.general}</div>}
         
         <form onSubmit={handleSubmit} noValidate>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <div className="form-group" style={{ flex: 1 }}>
+          <div className="form-row">
+            <div className="form-group">
               <label htmlFor="firstName">First Name</label>
               <input
                 id="firstName"
@@ -113,7 +113,7 @@ export const SignupPage: React.FC = () => {
               />
               {errors.firstName && <div className="error-message">{errors.firstName}</div>}
             </div>
-            <div className="form-group" style={{ flex: 1 }}>
+            <div className="form-group">
               <label htmlFor="lastName">Last Name</label>
               <input
                 id="lastName"
@@ -140,21 +140,6 @@ export const SignupPage: React.FC = () => {
               required
             />
             {errors.email && <div className="error-message">{errors.email}</div>}
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="role">Account Type</label>
-            <select
-              id="role"
-              className="auth-input"
-              value={formData.role}
-              onChange={handleChange}
-              disabled={isLoading}
-            >
-              {Object.entries(UserRoleLabels).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
           </div>
 
           <div className="form-group">

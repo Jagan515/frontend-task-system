@@ -165,7 +165,58 @@ export const createTask = createAsyncThunk(
   }
 );
 
+export const fetchAuditLogs = createAsyncThunk('tasks/fetchAuditLogs', async () => {
+  const response = await api.get('/audit-logs');
+  return response.data;
+});
+
+export const fetchInitialData = createAsyncThunk(
+  'tasks/fetchInitialData',
+  async () => {
+    const [tasksRes, usersRes, presetsRes] = await Promise.all([
+      api.get('/tasks'),
+      api.get('/users'),
+      api.get('/filter-presets')
+    ]);
+    return {
+      tasks: tasksRes.data,
+      users: usersRes.data,
+      presets: presetsRes.data
+    };
+  }
+);
+
+export const fetchTaskDetails = createAsyncThunk(
+  'tasks/fetchTaskDetails',
+  async (taskId: number) => {
+    const [commentsRes, historyRes, assigneesRes] = await Promise.all([
+      api.get(`/tasks/${taskId}/comments`),
+      api.get(`/tasks/${taskId}/history`),
+      api.get(`/tasks/${taskId}/assignees`)
+    ]);
+    return {
+      comments: commentsRes.data,
+      history: historyRes.data,
+      assignees: assigneesRes.data
+    };
+  }
+);
+
 import { logout } from './authSlice';
+
+import { UserRole } from '../../types/auth';
+
+const normalizeUserRole = (user: User): User => {
+  let role = user.role?.toUpperCase();
+  if (role === 'CONSUMER') role = UserRole.USER;
+  if (role === 'CONTRIBUTOR') role = UserRole.MANAGER;
+  if (role === 'POWER_USER') role = UserRole.ADMIN;
+  
+  return {
+    ...user,
+    role: (role as UserRole) || UserRole.USER
+  };
+};
 
 const tasksSlice = createSlice({
   name: 'tasks',
@@ -190,11 +241,34 @@ const tasksSlice = createSlice({
         state.items = action.payload;
       })
       .addCase(fetchTasks.rejected, (state, action) => {
+        if (action.meta.aborted) return;
         state.status = 'failed';
-        state.error = action.error.message || 'Something went wrong';
+        state.error = (action.payload as string) || action.error.message || 'Something went wrong';
+      })
+      .addCase(fetchInitialData.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(fetchInitialData.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.items = action.payload.tasks;
+        state.users = action.payload.users.map(normalizeUserRole);
+        state.filterPresets = action.payload.presets;
+      })
+      .addCase(fetchInitialData.rejected, (state, action) => {
+        if (action.meta.aborted) return;
+        state.status = 'failed';
+        state.error = (action.payload as string) || action.error.message || 'Something went wrong';
+      })
+      .addCase(fetchTaskDetails.fulfilled, (state, action) => {
+        state.comments = action.payload.comments;
+        state.history = action.payload.history;
+        state.selectedTaskAssignees = action.payload.assignees;
+      })
+      .addCase(fetchAuditLogs.fulfilled, (state, action: PayloadAction<AuditLog[]>) => {
+        state.history = action.payload;
       })
       .addCase(fetchUsers.fulfilled, (state, action: PayloadAction<User[]>) => {
-        state.users = action.payload;
+        state.users = action.payload.map(normalizeUserRole);
       })
       .addCase(fetchTaskComments.fulfilled, (state, action: PayloadAction<Comment[]>) => {
         state.comments = action.payload;

@@ -55,7 +55,7 @@ export const TaskDetail: React.FC = () => {
 
   const getUserName = (userId: number) => {
     const user = users.find(u => u.id === userId);
-    return user ? (user.firstName ? `${user.firstName} ${user.lastName || ''}` : user.email) : `User ${userId}`;
+    return user ? (user.username || (user.firstName ? `${user.firstName} ${user.lastName || ''}` : user.email)) : `User ${userId}`;
   };
 
   return (

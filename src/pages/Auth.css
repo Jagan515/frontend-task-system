@@ -1,38 +1,58 @@
+* {
+  box-sizing: border-box;
+}
+
 .auth-container {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: calc(100svh - 88px);
-  padding: 20px;
+  padding: 40px 20px;
   background-color: var(--bg);
 }
 
 .auth-card {
   width: 100%;
-  max-width: 400px;
-  padding: 40px;
+  max-width: 500px;
+  padding: 48px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 16px;
   box-shadow: var(--shadow);
   text-align: left;
 }
 
 .auth-card h2 {
-  margin-bottom: 24px;
+  margin-bottom: 32px;
   text-align: center;
+  font-size: 28px;
+  letter-spacing: -0.5px;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   position: relative;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text-h);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+}
+
+.form-row {
+  display: flex;
+  gap: 20px;
+}
+
+.form-row .form-group {
+  flex: 1;
+  min-width: 0;
 }
 
 .input-wrapper {
@@ -43,91 +63,115 @@
 
 .auth-input {
   width: 100%;
-  padding: 12px 16px;
+  padding: 14px 18px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 16px;
   background: var(--bg);
   color: var(--text-h);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: all 0.2s ease;
+  font-family: var(--sans);
+}
+
+.auth-input:hover {
+  border-color: var(--accent-border);
 }
 
 .auth-input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-bg);
+  box-shadow: 0 0 0 4px var(--accent-bg);
 }
 
 .auth-input.invalid {
   border-color: #ff4d4f;
 }
 
+.auth-input.invalid:focus {
+  box-shadow: 0 0 0 4px rgba(255, 77, 79, 0.1);
+}
+
 .password-toggle {
   position: absolute;
-  right: 12px;
+  right: 14px;
   background: none;
   border: none;
   color: var(--text);
   cursor: pointer;
-  padding: 4px;
-  font-size: 14px;
+  padding: 6px;
+  font-size: 13px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   user-select: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
 }
 
 .password-toggle:hover {
   color: var(--accent);
+  opacity: 1;
 }
 
 .error-message {
   color: #ff4d4f;
-  font-size: 12px;
-  margin-top: 4px;
-  min-height: 18px;
+  font-size: 13px;
+  margin-top: 6px;
+  min-height: 20px;
+  font-weight: 500;
   animation: fadeIn 0.2s ease-in-out;
 }
 
 .auth-button {
   width: 100%;
-  padding: 12px;
+  padding: 14px;
   background-color: var(--accent);
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.1s;
-  margin-top: 10px;
+  transition: all 0.2s ease;
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
 }
 
 .auth-button:hover:not(:disabled) {
   opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--accent-bg);
 }
 
 .auth-button:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: translateY(0);
 }
 
 .auth-button:disabled {
   background-color: var(--border);
   color: var(--text);
   cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .auth-footer {
-  margin-top: 24px;
+  margin-top: 32px;
   text-align: center;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text);
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
 }
 
 .auth-footer a {
   color: var(--accent);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .auth-footer a:hover {
@@ -138,13 +182,14 @@
   display: block;
   text-align: right;
   font-size: 14px;
-  margin-top: -12px;
-  margin-bottom: 20px;
+  margin-top: -16px;
+  margin-bottom: 24px;
 }
 
 .forgot-password a {
   color: var(--text);
   text-decoration: none;
+  font-weight: 500;
 }
 
 .forgot-password a:hover {
@@ -159,14 +204,27 @@
 /* Spinner */
 .spinner {
   display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 3px solid rgba(255,255,255,.3);
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,.3);
   border-radius: 50%;
   border-top-color: #fff;
-  animation: spin 1s ease-in-out infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 32px 24px;
+    border: none;
+    box-shadow: none;
+  }
+  
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
 }

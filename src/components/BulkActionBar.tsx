@@ -1,5 +1,6 @@
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { UserRole } from '../types/auth';
 import type { AppDispatch, RootState } from '../store';
 import { bulkUpdateTasks, bulkDeleteTasks, bulkAssignTasks } from '../store/slices/tasksSlice';
 import './BulkActionBar.css';
@@ -16,23 +17,23 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedIds, onCle
 
   if (selectedIds.length === 0) return null;
 
-  const isConsumer = currentUser?.role === 'CONSUMER';
-  const isContributor = currentUser?.role === 'CONTRIBUTOR';
+  const isUser = currentUser?.role === UserRole.USER;
+  const isManager = currentUser?.role === UserRole.MANAGER;
 
   const getAuthorizedIds = () => {
-    if (currentUser?.role === 'POWER_USER') return selectedIds;
-    if (isContributor) {
+    if (currentUser?.role === UserRole.ADMIN) return selectedIds;
+    if (isManager) {
       return selectedIds.filter(id => {
         const task = tasks.find(t => t.id === id);
         return task?.createdBy === currentUser.id;
       });
     }
-    return selectedIds; // CONSUMER check handled per task in backend
+    return selectedIds; // USER check handled per task in backend
   };
 
   const handleBulkStatus = (status: string) => {
     const idsToUpdate = getAuthorizedIds();
-    if (idsToUpdate.length === 0 && isContributor) {
+    if (idsToUpdate.length === 0 && isManager) {
       alert('You can only update tasks you created.');
       return;
     }
@@ -42,7 +43,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedIds, onCle
 
   const handleBulkPriority = (priority: string) => {
     const idsToUpdate = getAuthorizedIds();
-    if (idsToUpdate.length === 0 && isContributor) {
+    if (idsToUpdate.length === 0 && isManager) {
       alert('You can only update tasks you created.');
       return;
     }
@@ -52,7 +53,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedIds, onCle
 
   const handleBulkAssign = (userId: number) => {
     const idsToUpdate = getAuthorizedIds();
-    if (idsToUpdate.length === 0 && isContributor) {
+    if (idsToUpdate.length === 0 && isManager) {
       alert('You can only assign tasks you created.');
       return;
     }
@@ -62,7 +63,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedIds, onCle
 
   const handleBulkDelete = () => {
     const idsToDelete = getAuthorizedIds();
-    if (idsToDelete.length === 0 && isContributor) {
+    if (idsToDelete.length === 0 && isManager) {
       alert('You can only delete tasks you created.');
       return;
     }
@@ -89,7 +90,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedIds, onCle
           </select>
         </div>
 
-        {!isConsumer && (
+        {!isUser && (
           <>
             <div className="action-group">
               <label>Priority:</label>
@@ -107,7 +108,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedIds, onCle
                 <option value="" disabled>Assign To</option>
                 {users.map((user) => (
                   <option key={user.id} value={user.id}>
-                    {user.firstName} {user.lastName}
+                    {user.username || (user.firstName ? `${user.firstName} ${user.lastName || ''}` : user.email)}
                   </option>
                 ))}
               </select>

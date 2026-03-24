@@ -139,7 +139,11 @@
   }
   
   .header-nav {
-    display: none; /* Hide nav on mobile or use hamburger */
+    gap: 12px;
+  }
+  
+  .nav-link {
+    font-size: 12px;
   }
   
   .user-info-text {
