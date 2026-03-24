@@ -5,6 +5,7 @@ import { Dashboard } from '../pages/Dashboard';
 import { TasksPage } from '../pages/TasksPage';
 import { AuditLogPage } from '../pages/AuditLogPage';
 import { UsersPage } from '../pages/UsersPage';
+import { ResetPasswordPage } from '../pages/ResetPasswordPage';
 import React from 'react';
 
 

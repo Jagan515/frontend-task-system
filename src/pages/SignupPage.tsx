@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import api, { extractErrorMessage } from '../api/axios';
-import { UserRole, UserRoleLabels } from '../types/auth';
+import { UserRole } from '../types/auth';
 import type { RootState } from '../store';
 
 import './Auth.css';
@@ -15,7 +15,7 @@ export const SignupPage: React.FC = () => {
     password: '',
     confirmPassword: '',
     role: UserRole.ADMIN as string
-
+  });
   
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

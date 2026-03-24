@@ -108,10 +108,6 @@ export const LoginPage: React.FC = () => {
             {errors.password && <div className="error-message">{errors.password}</div>}
           </div>
 
-          <div className="forgot-password">
-            <Link to="/forgot-password">Forgot password?</Link>
-          </div>
-
           <button 
             type="submit" 
             className="auth-button" 

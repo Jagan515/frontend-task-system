@@ -161,7 +161,7 @@ export const deleteFilterPreset = createAsyncThunk<number, number>(
   }
 );
 
-export const updateTask = createAsyncThunk<{ id: number; data: Partial<Task> & { assignees?: number[] } }, { id: number; data: Partial<Task> & { assignees?: number[] } }>(
+export const updateTask = createAsyncThunk<{ id: number; data: Partial<Task> & { assignees?: number[]; lastUpdatedAt?: string } }, { id: number; data: Partial<Task> & { assignees?: number[]; lastUpdatedAt?: string } }>(
   'tasks/updateTask',
   async ({ id, data }, { rejectWithValue }) => {
     try {
@@ -276,43 +276,6 @@ export const fetchTaskDetails = createAsyncThunk<{ comments: Comment[]; history:
   }
 );
 
-export const fetchAuditLogs = createAsyncThunk('tasks/fetchAuditLogs', async () => {
-  const response = await api.get('/audit-logs');
-  return response.data;
-});
-
-export const fetchInitialData = createAsyncThunk(
-  'tasks/fetchInitialData',
-  async () => {
-    const [tasksRes, usersRes, presetsRes] = await Promise.all([
-      api.get('/tasks'),
-      api.get('/users'),
-      api.get('/filter-presets')
-    ]);
-    return {
-      tasks: tasksRes.data,
-      users: usersRes.data,
-      presets: presetsRes.data
-    };
-  }
-);
-
-export const fetchTaskDetails = createAsyncThunk(
-  'tasks/fetchTaskDetails',
-  async (taskId: number) => {
-    const [commentsRes, historyRes, assigneesRes] = await Promise.all([
-      api.get(`/tasks/${taskId}/comments`),
-      api.get(`/tasks/${taskId}/history`),
-      api.get(`/tasks/${taskId}/assignees`)
-    ]);
-    return {
-      comments: commentsRes.data,
-      history: historyRes.data,
-      assignees: assigneesRes.data
-    };
-  }
-);
-
 import { logout } from './authSlice';
 
 import { UserRole } from '../../types/auth';
@@ -377,7 +340,6 @@ const tasksSlice = createSlice({
       })
       .addCase(fetchAuditLogs.fulfilled, (state, action: PayloadAction<AuditLog[]>) => {
         state.history = action.payload;
-
       })
       .addCase(fetchUsers.fulfilled, (state, action: PayloadAction<User[]>) => {
         state.users = action.payload.map(normalizeUserRole);
@@ -396,9 +358,6 @@ const tasksSlice = createSlice({
       })
       .addCase(fetchFilterPresets.fulfilled, (state, action: PayloadAction<FilterPreset[]>) => {
         state.filterPresets = action.payload;
-      })
-      .addCase(fetchAuditLogs.fulfilled, (state, action) => {
-        state.history = action.payload;
       })
       .addCase(saveFilterPreset.fulfilled, (state, action: PayloadAction<FilterPreset>) => {
         state.filterPresets.push(action.payload);

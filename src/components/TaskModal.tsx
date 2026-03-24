@@ -9,6 +9,7 @@ import {
   type Task
 } from '../store/slices/tasksSlice';
 import { Modal } from './common/Modal';
+import { extractErrorMessage } from '../api/axios';
 
 import './TaskModal.css';
 
@@ -36,7 +37,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let promise: any;
+    let promise: { abort: () => void } | undefined;
     if (isOpen) {
       setError(null);
       if (taskToEdit) {
@@ -54,17 +55,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
     }
 
     return () => {
-      if (promise) {
+      if (promise && promise.abort) {
         promise.abort();
       }
     };
-  }, [isOpen, taskToEdit, dispatch]);
-
-  useEffect(() => {
-    if (taskToEdit && selectedTaskAssignees.length > 0) {
-      setFormData(prev => ({ ...prev, assignees: selectedTaskAssignees }));
-    }
-  }, [selectedTaskAssignees, taskToEdit]);
+  }, [isOpen, taskToEdit, dispatch, selectedTaskAssignees]);
 
   const isOwner = taskToEdit?.createdBy === currentUser?.id;
 
@@ -80,7 +75,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
     setIsSubmitting(true);
     setError(null);
 
-    let payload: any;
+    let payload: Partial<Task> & { assignees?: number[] };
     if (taskToEdit && isUser) {
       // Users can only send status
 
@@ -119,14 +114,14 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
           data: { ...payload, lastUpdatedAt: taskToEdit.updatedAt } 
         })).unwrap();
       } else {
-        await dispatch(createTask(payload)).unwrap();
+        await dispatch(createTask(payload as Omit<Task, 'id' | 'status' | 'createdAt' | 'createdBy'>)).unwrap();
       }
       onClose();
 
-    } catch (err: any) {
+    } catch (err: unknown) {
 
       console.error('Failed to save task:', err);
-      setError(err.response?.data?.error?.message || err.message || 'Failed to save task');
+      setError(extractErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -221,7 +216,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
               id="priority"
               className="form-input"
               value={formData.priority}
-              onChange={e => setFormData({...formData, priority: e.target.value as any})}
+              onChange={e => setFormData({...formData, priority: e.target.value as Task['priority']})}
               disabled={!canEditFull}
 
             >
@@ -241,7 +236,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
               id="status"
               className="form-input"
               value={formData.status}
-              onChange={e => setFormData({...formData, status: e.target.value as any})}
+              onChange={e => setFormData({...formData, status: e.target.value as Task['status']})}
             >
               <option value="PENDING">Pending</option>
               <option value="IN_PROGRESS">In Progress</option>

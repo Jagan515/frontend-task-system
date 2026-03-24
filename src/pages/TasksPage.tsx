@@ -2,14 +2,21 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../store';
 import { UserRole } from '../types/auth';
-import { fetchTasks, updateTask, fetchUsers, selectTask, type Task, fetchFilterPresets, saveFilterPreset, deleteFilterPreset, type FilterPreset } from '../store/slices/tasksSlice';
-
-import { TaskModal } from '../components/TaskModal';
+import { 
+  updateTask, 
+  selectTask, 
+  fetchInitialData,
+  type Task, 
+  saveFilterPreset, 
+  deleteFilterPreset, 
+  type FilterPreset 
+} from '../store/slices/tasksSlice';
+import { extractErrorMessage } from '../api/axios';
+import { APP_ROUTES } from '../config/routes';
 import { BulkActionBar } from '../components/BulkActionBar';
+import { TaskModal } from '../components/TaskModal';
 import { Badge } from '../components/common/Badge';
 import { EmptyState } from '../components/common/EmptyState';
-import { APP_ROUTES } from '../config/routes';
-import './Dashboard.css';
 import './TasksPage.css';
 
 // SVG Icons
