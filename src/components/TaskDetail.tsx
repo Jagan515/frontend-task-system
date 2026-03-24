@@ -31,13 +31,13 @@ export const TaskDetail: React.FC = () => {
   const task = tasks.find(t => t.id === selectedTaskId);
 
   useEffect(() => {
-    let promise: any;
+    let promise: { abort: () => void } | undefined;
     if (selectedTaskId) {
       promise = dispatch(fetchTaskDetails(selectedTaskId));
     }
     
     return () => {
-      if (promise) {
+      if (promise && promise.abort) {
         promise.abort();
       }
     };
@@ -63,6 +63,7 @@ export const TaskDetail: React.FC = () => {
       description: task.description,
       priority: task.priority,
       status: task.status,
+      dueDate: task.dueDate,
     });
     setIsEditing(true);
     setError(null);
@@ -123,38 +124,45 @@ export const TaskDetail: React.FC = () => {
               </>
             ) : (
               <div className="edit-form">
-                <input 
-                  className="edit-input title-input"
-                  value={editData.title}
-                  onChange={e => setEditData({...editData, title: e.target.value})}
-                />
-                <textarea 
-                  className="edit-input desc-input"
-                  value={editData.description}
-                  onChange={e => setEditData({...editData, description: e.target.value})}
-                />
-                <div className="form-group" style={{ marginTop: '12px' }}>
-                  <label>Due Date</label>
+                <div className="form-group">
+                  <label>Title</label>
                   <input 
-                    type="date"
-                    className="edit-input"
-                    min={new Date().toISOString().split('T')[0]}
-                    value={editData.dueDate ? new Date(editData.dueDate).toISOString().split('T')[0] : ''}
-                    onChange={e => setEditData({...editData, dueDate: e.target.value})}
+                    className="edit-input title-input"
+                    value={editData.title || ''}
+                    onChange={e => setEditData({...editData, title: e.target.value})}
                   />
                 </div>
-                <div className="meta-item" style={{ marginTop: '12px' }}>
-                  <label>Status</label>
-                  <select 
-                    className="edit-input"
-                    value={editData.status} 
-                    onChange={e => setEditData({...editData, status: e.target.value as any})}
-                  >
-                    <option value="PENDING">Pending</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="COMPLETED">Completed</option>
-                    <option value="CANCELLED">Cancelled</option>
-                  </select>
+                <div className="form-group">
+                  <label>Description</label>
+                  <textarea 
+                    className="edit-input desc-input"
+                    value={editData.description || ''}
+                    onChange={e => setEditData({...editData, description: e.target.value})}
+                  />
+                </div>
+                <div className="form-row" style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Due Date</label>
+                    <input 
+                      type="date"
+                      className="edit-input"
+                      value={editData.dueDate ? new Date(editData.dueDate).toISOString().split('T')[0] : ''}
+                      onChange={e => setEditData({...editData, dueDate: e.target.value})}
+                    />
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Status</label>
+                    <select 
+                      className="edit-input"
+                      value={editData.status} 
+                      onChange={e => setEditData({...editData, status: e.target.value as Task['status']})}
+                    >
+                      <option value="PENDING">Pending</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="COMPLETED">Completed</option>
+                      <option value="CANCELLED">Cancelled</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             )}
@@ -166,8 +174,9 @@ export const TaskDetail: React.FC = () => {
                   <span className={`priority-pill priority-${task.priority.toLowerCase()}`}>{task.priority}</span>
                 ) : (
                   <select 
+                    className="edit-input"
                     value={editData.priority} 
-                    onChange={e => setEditData({...editData, priority: e.target.value as any})}
+                    onChange={e => setEditData({...editData, priority: e.target.value as Task['priority']})}
                   >
                     <option value="LOW">Low</option>
                     <option value="MEDIUM">Medium</option>
@@ -175,10 +184,20 @@ export const TaskDetail: React.FC = () => {
                   </select>
                 )}
               </div>
-              <div className="meta-item">
-                <label>Due Date</label>
-                <span>{new Date(task.dueDate).toLocaleDateString()}</span>
-              </div>
+              {!isEditing && (
+                <div className="meta-item">
+                  <label>Due Date</label>
+                  <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+                </div>
+              )}
+              {!isEditing && (
+                <div className="meta-item">
+                  <label>Status</label>
+                  <span className={`status-badge status-${task.status.toLowerCase().replace('_', '-')}`}>
+                    {task.status.replace('_', ' ')}
+                  </span>
+                </div>
+              )}
               <div className="meta-item">
                 <label>Created By</label>
                 <span>{getUserName(task.createdBy)}</span>
@@ -222,18 +241,33 @@ export const TaskDetail: React.FC = () => {
                     </div>
                     {log.details && Object.keys(log.details).length > 0 && (
                       <div className="history-details">
-                        {Object.entries(log.details).map(([key, value]: [string, { old?: unknown; new: unknown }]) => (
-                          <div key={key} className="history-diff">
-                            <span className="diff-key">{key}:</span>
-                            {value.old !== undefined ? (
-                              <>
-                                <span className="diff-old">{String(value.old)}</span>
-                                <span className="diff-arrow">→</span>
-                              </>
-                            ) : null}
-                            <span className="diff-new">{String(value.new)}</span>
-                          </div>
-                        ))}
+                        {Object.entries(log.details as Record<string, unknown>).map(([key, value]) => {
+                          const isObject = typeof value === 'object' && value !== null;
+                          const hasDiff = isObject && ('old' in (value as object) || 'new' in (value as object));
+                          
+                          if (hasDiff) {
+                            const diff = value as { old?: unknown; new: unknown };
+                            return (
+                              <div key={key} className="history-diff">
+                                <span className="diff-key">{key}:</span>
+                                {diff.old !== undefined ? (
+                                  <>
+                                    <span className="diff-old">{String(diff.old)}</span>
+                                    <span className="diff-arrow">→</span>
+                                  </>
+                                ) : null}
+                                <span className="diff-new">{String(diff.new)}</span>
+                              </div>
+                            );
+                          }
+                          
+                          return (
+                            <div key={key} className="history-diff">
+                              <span className="diff-key">{key}:</span>
+                              <span className="diff-new">{String(value)}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

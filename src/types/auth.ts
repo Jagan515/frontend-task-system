@@ -18,8 +18,8 @@ export interface User {
   email: string;
   username?: string;
   role: UserRole;
-  username?: string;
   firstName?: string;
   lastName?: string;
   isActive?: boolean;
+  passwordResetRequired?: boolean;
 }

@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import type { RootState, AppDispatch } from '../store';
 import { UserRole } from '../types/auth';
-import { fetchTasks, updateTask, fetchUsers, selectTask, type Task } from '../store/slices/tasksSlice';
+import { updateTask, selectTask, fetchInitialData, type Task } from '../store/slices/tasksSlice';
 
 import { APP_ROUTES } from '../config/routes';
 import { TaskModal } from '../components/TaskModal';

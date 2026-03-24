@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { UserRole } from '../types/auth';
 import type { AppDispatch, RootState } from '../store';
-import { bulkUpdateTasks, bulkDeleteTasks, bulkAssignTasks } from '../store/slices/tasksSlice';
+import { bulkUpdateTasks, bulkDeleteTasks, bulkAssignTasks, type Task } from '../store/slices/tasksSlice';
 import { extractErrorMessage } from '../api/axios';
 import './BulkActionBar.css';
 
@@ -26,49 +26,68 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedIds, onCle
     if (isManager) {
       return selectedIds.filter(id => {
         const task = tasks.find(t => t.id === id);
-        return task?.createdBy === currentUser.id;
+        return task?.createdBy === currentUser?.id;
       });
     }
     return selectedIds; // USER check handled per task in backend
   };
 
-  const handleBulkStatus = (status: string) => {
-    const idsToUpdate = getAuthorizedIds();
-    if (idsToUpdate.length === 0 && isManager) {
+  const authorizedIds = getAuthorizedIds();
+  const unauthorizedCount = selectedIds.length - authorizedIds.length;
+  const hasAuthorizedTasks = authorizedIds.length > 0;
+
+  const handleBulkStatus = async (status: string) => {
+    if (authorizedIds.length === 0 && isManager) {
       alert('You can only update tasks you created.');
       return;
-
+    }
+    try {
+      await dispatch(bulkUpdateTasks({ ids: authorizedIds, data: { status: status as Task['status'] } })).unwrap();
+      onClear();
+    } catch (err) {
+      setLocalError(extractErrorMessage(err));
     }
   };
-  const handleBulkPriority = (priority: string) => {
-    const idsToUpdate = getAuthorizedIds();
-    if (idsToUpdate.length === 0 && isManager) {
+
+  const handleBulkPriority = async (priority: string) => {
+    if (authorizedIds.length === 0 && isManager) {
       alert('You can only update tasks you created.');
       return;
-
+    }
+    try {
+      await dispatch(bulkUpdateTasks({ ids: authorizedIds, data: { priority: priority as Task['priority'] } })).unwrap();
+      onClear();
+    } catch (err) {
+      setLocalError(extractErrorMessage(err));
     }
   };
 
-  const handleBulkAssign = (userId: number) => {
-    const idsToUpdate = getAuthorizedIds();
-    if (idsToUpdate.length === 0 && isManager) {
+  const handleBulkAssign = async (userId: number) => {
+    if (authorizedIds.length === 0 && isManager) {
       alert('You can only assign tasks you created.');
       return;
-
+    }
+    try {
+      await dispatch(bulkAssignTasks({ ids: authorizedIds, userIds: [userId] })).unwrap();
+      onClear();
+    } catch (err) {
+      setLocalError(extractErrorMessage(err));
     }
   };
 
 
-  const handleBulkDelete = () => {
-    const idsToDelete = getAuthorizedIds();
-    if (idsToDelete.length === 0 && isManager) {
+  const handleBulkDelete = async () => {
+    if (authorizedIds.length === 0 && isManager) {
       alert('You can only delete tasks you created.');
       return;
     }
-    if (window.confirm(`Are you sure you want to delete ${idsToDelete.length} tasks?`)) {
-      dispatch(bulkDeleteTasks(idsToDelete));
-      onClear();
-
+    if (window.confirm(`Are you sure you want to delete ${authorizedIds.length} tasks?`)) {
+      try {
+        await dispatch(bulkDeleteTasks(authorizedIds)).unwrap();
+        onClear();
+      } catch (err) {
+        setLocalError(extractErrorMessage(err));
+      }
     }
   };
 

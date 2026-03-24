@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { type RootState, type AppDispatch } from '../store';
 import { fetchAuditLogs } from '../store/slices/tasksSlice';
@@ -10,12 +10,6 @@ const SearchIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="8"></circle>
     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-  </svg>
-);
-
-const FilterIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
   </svg>
 );
 
@@ -47,10 +41,10 @@ export const AuditLogPage: React.FC = () => {
     };
   }, [dispatch]);
 
-  const getUserName = (userId: number) => {
+  const getUserName = useCallback((userId: number) => {
     const user = users.find(u => u.id === userId);
     return user ? (user.username || (user.firstName ? `${user.firstName} ${user.lastName || ''}` : user.email)) : `User ${userId}`;
-  };
+  }, [users]);
 
   const getActionStyles = (action: string) => {
     if (action.includes('CREATE')) return { bg: '#05966920', color: '#059669' };
@@ -74,7 +68,7 @@ export const AuditLogPage: React.FC = () => {
         return matchesSearch && matchesAction && matchesEntity;
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [logs, searchTerm, actionFilter, entityFilter, users]);
+  }, [logs, searchTerm, actionFilter, entityFilter, getUserName]);
 
   const entities = useMemo(() => Array.from(new Set(logs.map(l => l.entityType))), [logs]);
 
@@ -176,11 +170,11 @@ export const AuditLogPage: React.FC = () => {
                       <td className="details-cell">
                         {log.details && Object.keys(log.details).length > 0 ? (
                           <div className="details-preview">
-                            {Object.entries(log.details).slice(0, 2).map(([key, val]: [string, any]) => (
+                            {Object.entries(log.details).slice(0, 2).map(([key, val]) => (
                               <div key={key} className="detail-item">
                                 <span className="detail-key">{key}:</span> {
                                   typeof val === 'object' && val !== null 
-                                    ? (val.new !== undefined ? String(val.new) : JSON.stringify(val))
+                                    ? ((val as Record<string, unknown>).new !== undefined ? String((val as Record<string, unknown>).new) : JSON.stringify(val))
                                     : String(val)
                                 }
                               </div>
