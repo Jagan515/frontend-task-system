@@ -14,7 +14,8 @@ export const SignupPage: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
-  });
+    role: UserRole.ADMIN as string
+
   
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

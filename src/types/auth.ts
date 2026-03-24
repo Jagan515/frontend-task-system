@@ -1,7 +1,8 @@
 export const UserRole = {
-  USER: 'user',
-  MANAGER: 'manager',
-  ADMIN: 'admin',
+  USER: 'USER',
+  MANAGER: 'MANAGER',
+  ADMIN: 'ADMIN',
+
 } as const;
 
 export const UserRoleLabels = {
@@ -17,8 +18,8 @@ export interface User {
   email: string;
   username?: string;
   role: UserRole;
+  username?: string;
   firstName?: string;
   lastName?: string;
   isActive?: boolean;
-  passwordResetRequired?: boolean;
 }

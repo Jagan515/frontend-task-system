@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../store';
-import { fetchInitialData, updateTask, selectTask, type Task, saveFilterPreset, deleteFilterPreset, type FilterPreset } from '../store/slices/tasksSlice';
+import { UserRole } from '../types/auth';
+import { fetchTasks, updateTask, fetchUsers, selectTask, type Task, fetchFilterPresets, saveFilterPreset, deleteFilterPreset, type FilterPreset } from '../store/slices/tasksSlice';
+
 import { TaskModal } from '../components/TaskModal';
 import { BulkActionBar } from '../components/BulkActionBar';
+import { Badge } from '../components/common/Badge';
+import { EmptyState } from '../components/common/EmptyState';
 import { APP_ROUTES } from '../config/routes';
 import './Dashboard.css';
 import './TasksPage.css';
@@ -272,8 +276,8 @@ export const TasksPage: React.FC = () => {
         >
           Due Date <SortIcon direction={sortDirection} />
         </button>
+        {user && user.role !== UserRole.USER && (APP_ROUTES.find(r => r.path === '/tasks/create')?.permissions?.includes(user.role)) && (
 
-        {user && (user.role === 'manager' || user.role === 'admin') && (
           <button 
             className="primary-btn" 
             onClick={() => setIsModalOpen(true)}
@@ -380,10 +384,10 @@ export const TasksPage: React.FC = () => {
             />
           ))
         ) : (
-          <div className="empty-state">
-            <span className="empty-state-icon">🔍</span>
-            <p>No tasks found matching your filters.</p>
-          </div>
+          <EmptyState 
+            title="No tasks found" 
+            message="No tasks match your current filters or search criteria." 
+          />
         )}
       </div>
 
@@ -455,9 +459,9 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onComplete, onSnooze, onSelec
       <div className="task-content">
         <div className="task-title-row">
           <span className="task-title">{task.title}</span>
-          <span className={`priority-pill priority-${task.priority.toLowerCase()}`}>
-            {task.priority}
-          </span>
+          <Badge label={task.priority} type={task.priority} variant="priority" />
+          <Badge label={task.status} type={task.status} variant="status" />
+
         </div>
         {task.description && (
           <p className="task-description">{task.description}</p>

@@ -43,7 +43,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Clear token and logout
       store.dispatch(logout());
-      window.location.href = '/login';
+      // No window.location.href here to avoid jarring refresh.
+      // The app will redirect to login because isAuthenticated will become false.
     }
     return Promise.reject(error);
   }

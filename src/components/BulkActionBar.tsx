@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { UserRole } from '../types/auth';
 import type { AppDispatch, RootState } from '../store';
 import { bulkUpdateTasks, bulkDeleteTasks, bulkAssignTasks } from '../store/slices/tasksSlice';
 import { extractErrorMessage } from '../api/axios';
@@ -17,61 +18,57 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedIds, onCle
   const [localError, setLocalError] = useState<string | null>(null);
 
   if (selectedIds.length === 0) return null;
+  const isUser = currentUser?.role === UserRole.USER;
+  const isManager = currentUser?.role === UserRole.MANAGER;
 
-  const isUser = currentUser?.role === 'user';
-  const isManager = currentUser?.role === 'manager';
+  const getAuthorizedIds = () => {
+    if (currentUser?.role === UserRole.ADMIN) return selectedIds;
+    if (isManager) {
+      return selectedIds.filter(id => {
+        const task = tasks.find(t => t.id === id);
+        return task?.createdBy === currentUser.id;
+      });
+    }
+    return selectedIds; // USER check handled per task in backend
+  };
 
-  const authorizedIds = isManager
-    ? selectedIds.filter(id => tasks.find(t => t.id === id)?.createdBy === currentUser?.id)
-    : (currentUser?.role === 'admin' ? selectedIds : []);
+  const handleBulkStatus = (status: string) => {
+    const idsToUpdate = getAuthorizedIds();
+    if (idsToUpdate.length === 0 && isManager) {
+      alert('You can only update tasks you created.');
+      return;
 
-  
-  const unauthorizedCount = selectedIds.length - authorizedIds.length;
-  const hasAuthorizedTasks = authorizedIds.length > 0;
+    }
+  };
+  const handleBulkPriority = (priority: string) => {
+    const idsToUpdate = getAuthorizedIds();
+    if (idsToUpdate.length === 0 && isManager) {
+      alert('You can only update tasks you created.');
+      return;
 
-  const handleBulkStatus = async (status: string) => {
-    if (!hasAuthorizedTasks) return;
-    setLocalError(null);
-    try {
-      await dispatch(bulkUpdateTasks({ ids: authorizedIds, data: { status: status as any } })).unwrap();
-      onClear();
-    } catch (err) {
-      setLocalError(extractErrorMessage(err));
     }
   };
 
-  const handleBulkPriority = async (priority: string) => {
-    if (!hasAuthorizedTasks) return;
-    setLocalError(null);
-    try {
-      await dispatch(bulkUpdateTasks({ ids: authorizedIds, data: { priority: priority as any } })).unwrap();
-      onClear();
-    } catch (err) {
-      setLocalError(extractErrorMessage(err));
+  const handleBulkAssign = (userId: number) => {
+    const idsToUpdate = getAuthorizedIds();
+    if (idsToUpdate.length === 0 && isManager) {
+      alert('You can only assign tasks you created.');
+      return;
+
     }
   };
 
-  const handleBulkAssign = async (userId: number) => {
-    if (!hasAuthorizedTasks) return;
-    setLocalError(null);
-    try {
-      await dispatch(bulkAssignTasks({ ids: authorizedIds, userIds: [userId] })).unwrap();
-      onClear();
-    } catch (err) {
-      setLocalError(extractErrorMessage(err));
-    }
-  };
 
-  const handleBulkDelete = async () => {
-    if (!hasAuthorizedTasks) return;
-    if (window.confirm(`Are you sure you want to delete ${authorizedIds.length} tasks?`)) {
-      setLocalError(null);
-      try {
-        await dispatch(bulkDeleteTasks(authorizedIds)).unwrap();
-        onClear();
-      } catch (err) {
-        setLocalError(extractErrorMessage(err));
-      }
+  const handleBulkDelete = () => {
+    const idsToDelete = getAuthorizedIds();
+    if (idsToDelete.length === 0 && isManager) {
+      alert('You can only delete tasks you created.');
+      return;
+    }
+    if (window.confirm(`Are you sure you want to delete ${idsToDelete.length} tasks?`)) {
+      dispatch(bulkDeleteTasks(idsToDelete));
+      onClear();
+
     }
   };
 
@@ -128,7 +125,7 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedIds, onCle
                 <option value="" disabled>Assign To</option>
                 {users.map((user) => (
                   <option key={user.id} value={user.id}>
-                    {user.firstName} {user.lastName}
+                    {user.username || (user.firstName ? `${user.firstName} ${user.lastName || ''}` : user.email)}
                   </option>
                 ))}
               </select>

@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import type { RootState, AppDispatch } from '../store';
-import { fetchInitialData, updateTask, selectTask, type Task } from '../store/slices/tasksSlice';
+import { UserRole } from '../types/auth';
+import { fetchTasks, updateTask, fetchUsers, selectTask, type Task } from '../store/slices/tasksSlice';
+
 import { APP_ROUTES } from '../config/routes';
 import { TaskModal } from '../components/TaskModal';
 import './Dashboard.css';
@@ -82,7 +84,7 @@ export const Dashboard: React.FC = () => {
 
   // Determine if user can create tasks (based on APP_ROUTES permissions for /tasks/create)
   const createTaskRoute = APP_ROUTES.find(r => r.path === '/tasks/create');
-  const canCreateTask = user && user.role !== 'user' && createTaskRoute?.permissions?.includes(user.role);
+  const canCreateTask = user && user.role !== UserRole.USER && createTaskRoute?.permissions?.includes(user.role);
 
   // Fix duplication: Exclude the 'Dashboard' itself from the nav items loop
   return (

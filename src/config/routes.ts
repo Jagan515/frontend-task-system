@@ -1,33 +1,33 @@
-import React from 'react';
-import { Dashboard } from '../pages/Dashboard';
+import { UserRole } from '../types/auth';
 import { LoginPage } from '../pages/LoginPage';
 import { SignupPage } from '../pages/SignupPage';
-import { AuditLogPage } from '../pages/AuditLogPage';
+import { Dashboard } from '../pages/Dashboard';
 import { TasksPage } from '../pages/TasksPage';
+import { AuditLogPage } from '../pages/AuditLogPage';
 import { UsersPage } from '../pages/UsersPage';
-import { ResetPasswordPage } from '../pages/ResetPasswordPage';
-import { UserRole } from '../types/auth';
+import React from 'react';
+
 
 export interface RouteConfig {
   path: string;
+  isProtected: boolean;
+  permissions?: UserRole[];
   element: React.FC;
   label?: string;
-  isProtected: boolean;
-  permissions?: UserRole[];   // Use enum for permissions
   hideInMenu?: boolean;
 }
 
 export const APP_ROUTES: RouteConfig[] = [
   {
     path: '/login',
-    element: LoginPage,
     isProtected: false,
+    element: LoginPage,
     hideInMenu: true,
   },
   {
     path: '/signup',
-    element: SignupPage,
     isProtected: false,
+    element: SignupPage,
     hideInMenu: true,
   },
   {
@@ -39,38 +39,43 @@ export const APP_ROUTES: RouteConfig[] = [
   },
   {
     path: '/',
-    element: Dashboard,
-    label: 'Dashboard',
     isProtected: true,
     permissions: [UserRole.USER, UserRole.MANAGER, UserRole.ADMIN],
+    element: Dashboard,
+    label: 'Dashboard',
+
+
   },
   {
     path: '/tasks',
-    element: TasksPage,
-    label: 'Tasks',
     isProtected: true,
     permissions: [UserRole.USER, UserRole.MANAGER, UserRole.ADMIN],
+    element: TasksPage,
+    label: 'Tasks',
+
   },
   {
     path: '/tasks/create',
-    element: Dashboard, // Dummy element, not used as a page anymore
-    label: 'Create Task',
     isProtected: true,
     permissions: [UserRole.MANAGER, UserRole.ADMIN],
+
+    element: TasksPage,
+
     hideInMenu: true,
   },
   {
     path: '/users',
+    isProtected: true,
+    permissions: [UserRole.USER, UserRole.MANAGER, UserRole.ADMIN],
     element: UsersPage,
     label: 'Users',
-    isProtected: true,
-    permissions: [UserRole.MANAGER, UserRole.ADMIN],
   },
   {
-    path: '/admin/audit-logs',
-    element: AuditLogPage,
-    label: 'Audit Logs',
+    path: '/audit-log',
     isProtected: true,
     permissions: [UserRole.ADMIN],
-  }
+    element: AuditLogPage,
+    label: 'Audit Log',
+  },
+
 ];
