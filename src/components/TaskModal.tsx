@@ -9,6 +9,7 @@ import {
   type Task
 } from '../store/slices/tasksSlice';
 import { Modal } from './common/Modal';
+
 import './TaskModal.css';
 
 interface TaskModalProps {
@@ -23,11 +24,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
   const currentUser = useSelector((state: RootState) => state.auth.user);
   
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    dueDate: new Date().toISOString().split('T')[0],
-    priority: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
-    status: 'PENDING' as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED',
+    title: taskToEdit?.title || '',
+    description: taskToEdit?.description || '',
+    dueDate: taskToEdit ? new Date(taskToEdit.dueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    priority: (taskToEdit?.priority || 'MEDIUM') as 'LOW' | 'MEDIUM' | 'HIGH',
+    status: (taskToEdit?.status || 'PENDING') as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED',
     assignees: [] as number[],
   });
 
@@ -35,29 +36,28 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let promise: any;
     if (isOpen) {
       setError(null);
       if (taskToEdit) {
+        // Sync formData if taskToEdit changes after mount
         setFormData({
           title: taskToEdit.title,
           description: taskToEdit.description || '',
           dueDate: new Date(taskToEdit.dueDate).toISOString().split('T')[0],
           priority: taskToEdit.priority,
           status: taskToEdit.status,
-          assignees: [],
+          assignees: selectedTaskAssignees,
         });
-        dispatch(fetchTaskAssignees(taskToEdit.id));
-      } else {
-        setFormData({
-          title: '',
-          description: '',
-          dueDate: new Date().toISOString().split('T')[0],
-          priority: 'MEDIUM',
-          status: 'PENDING',
-          assignees: [],
-        });
+        promise = dispatch(fetchTaskAssignees(taskToEdit.id));
       }
     }
+
+    return () => {
+      if (promise) {
+        promise.abort();
+      }
+    };
   }, [isOpen, taskToEdit, dispatch]);
 
   useEffect(() => {
@@ -67,11 +67,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
   }, [selectedTaskAssignees, taskToEdit]);
 
   const isOwner = taskToEdit?.createdBy === currentUser?.id;
+
   const isUser = currentUser?.role === UserRole.USER;
   const isManager = currentUser?.role === UserRole.MANAGER;
 
   // Can only edit non-status fields if Admin, or if Manager & Owner
   const canEditFull = currentUser?.role === UserRole.ADMIN || (isManager && isOwner) || (!taskToEdit && !isUser);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,8 +83,26 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
     let payload: any;
     if (taskToEdit && isUser) {
       // Users can only send status
+
       payload = { status: formData.status };
     } else {
+      // Validation: Title cannot be empty
+      if (!formData.title.trim()) {
+        setError('Title is required.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validation: Due date cannot be in the past
+      const dueDate = new Date(formData.dueDate);
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      if (dueDate < now) {
+        setError('Due date cannot be in the past.');
+        setIsSubmitting(false);
+        return;
+      }
+
       payload = {
         title: formData.title,
         description: formData.description,
@@ -102,7 +122,9 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
         await dispatch(createTask(payload)).unwrap();
       }
       onClose();
+
     } catch (err: any) {
+
       console.error('Failed to save task:', err);
       setError(err.response?.data?.error?.message || err.message || 'Failed to save task');
     } finally {
@@ -135,6 +157,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
   );
 
   return (
+
     <Modal 
       isOpen={isOpen} 
       onClose={onClose} 
@@ -178,6 +201,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
         </div>
 
         <div className="form-row">
+
           <div className="form-group">
             <label htmlFor="dueDate">Due Date</label>
             <input 
@@ -199,16 +223,19 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
               value={formData.priority}
               onChange={e => setFormData({...formData, priority: e.target.value as any})}
               disabled={!canEditFull}
+
             >
               <option value="LOW">Low</option>
               <option value="MEDIUM">Medium</option>
               <option value="HIGH">High</option>
             </select>
+
           </div>
         </div>
 
         {taskToEdit && (
           <div className="form-group">
+
             <label htmlFor="status">Status</label>
             <select 
               id="status"
@@ -221,6 +248,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, taskToEdi
               <option value="COMPLETED">Completed</option>
               <option value="CANCELLED">Cancelled</option>
             </select>
+
           </div>
         )}
 

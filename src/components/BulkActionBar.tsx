@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { UserRole } from '../types/auth';
 import type { AppDispatch, RootState } from '../store';
 import { bulkUpdateTasks, bulkDeleteTasks, bulkAssignTasks } from '../store/slices/tasksSlice';
+import { extractErrorMessage } from '../api/axios';
 import './BulkActionBar.css';
 
 interface BulkActionBarProps {
@@ -14,9 +15,9 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedIds, onCle
   const dispatch = useDispatch<AppDispatch>();
   const { users, items: tasks } = useSelector((state: RootState) => state.tasks);
   const currentUser = useSelector((state: RootState) => state.auth.user);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   if (selectedIds.length === 0) return null;
-
   const isUser = currentUser?.role === UserRole.USER;
   const isManager = currentUser?.role === UserRole.MANAGER;
 
@@ -36,19 +37,16 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedIds, onCle
     if (idsToUpdate.length === 0 && isManager) {
       alert('You can only update tasks you created.');
       return;
-    }
-    dispatch(bulkUpdateTasks({ ids: idsToUpdate, data: { status: status as any } }));
-    onClear();
-  };
 
+    }
+  };
   const handleBulkPriority = (priority: string) => {
     const idsToUpdate = getAuthorizedIds();
     if (idsToUpdate.length === 0 && isManager) {
       alert('You can only update tasks you created.');
       return;
+
     }
-    dispatch(bulkUpdateTasks({ ids: idsToUpdate, data: { priority: priority as any } }));
-    onClear();
   };
 
   const handleBulkAssign = (userId: number) => {
@@ -56,10 +54,10 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedIds, onCle
     if (idsToUpdate.length === 0 && isManager) {
       alert('You can only assign tasks you created.');
       return;
+
     }
-    dispatch(bulkAssignTasks({ ids: idsToUpdate, userIds: [userId] }));
-    onClear();
   };
+
 
   const handleBulkDelete = () => {
     const idsToDelete = getAuthorizedIds();
@@ -70,19 +68,30 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedIds, onCle
     if (window.confirm(`Are you sure you want to delete ${idsToDelete.length} tasks?`)) {
       dispatch(bulkDeleteTasks(idsToDelete));
       onClear();
+
     }
   };
 
   return (
     <div className="bulk-action-bar">
-      <div className="selection-info">
-        <span className="count">{selectedIds.length}</span> tasks selected
+      {localError && <div className="error-banner" style={{ position: 'absolute', top: '-60px', width: '100%', left: 0 }}>{localError}</div>}
+      <div className="selection-info" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div><span className="count">{selectedIds.length}</span> tasks selected</div>
+        {isManager && unauthorizedCount > 0 && (
+          <div style={{ fontSize: '11px', color: '#6b7280' }}>
+            ({authorizedIds.length} editable by you, {unauthorizedCount} read-only)
+          </div>
+        )}
       </div>
       
       <div className="action-groups">
         <div className="action-group">
           <label>Status:</label>
-          <select onChange={(e) => handleBulkStatus(e.target.value)} value="">
+          <select 
+            onChange={(e) => handleBulkStatus(e.target.value)} 
+            value="" 
+            disabled={!hasAuthorizedTasks}
+          >
             <option value="" disabled>Change Status</option>
             <option value="PENDING">Pending</option>
             <option value="IN_PROGRESS">In Progress</option>
@@ -94,7 +103,11 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedIds, onCle
           <>
             <div className="action-group">
               <label>Priority:</label>
-              <select onChange={(e) => handleBulkPriority(e.target.value)} value="">
+              <select 
+                onChange={(e) => handleBulkPriority(e.target.value)} 
+                value="" 
+                disabled={!hasAuthorizedTasks}
+              >
                 <option value="" disabled>Change Priority</option>
                 <option value="LOW">Low</option>
                 <option value="MEDIUM">Medium</option>
@@ -104,7 +117,11 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedIds, onCle
 
             <div className="action-group">
               <label>Assignee:</label>
-              <select onChange={(e) => handleBulkAssign(parseInt(e.target.value))} value="">
+              <select 
+                onChange={(e) => handleBulkAssign(parseInt(e.target.value))} 
+                value="" 
+                disabled={!hasAuthorizedTasks}
+              >
                 <option value="" disabled>Assign To</option>
                 {users.map((user) => (
                   <option key={user.id} value={user.id}>
@@ -114,7 +131,13 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedIds, onCle
               </select>
             </div>
 
-            <button className="btn-bulk-delete" onClick={handleBulkDelete}>Delete All</button>
+            <button 
+              className="btn-bulk-delete" 
+              onClick={handleBulkDelete}
+              disabled={!hasAuthorizedTasks}
+            >
+              Delete Selected
+            </button>
           </>
         )}
         <button className="btn-clear" onClick={onClear}>Cancel</button>

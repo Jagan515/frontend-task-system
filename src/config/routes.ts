@@ -7,6 +7,7 @@ import { AuditLogPage } from '../pages/AuditLogPage';
 import { UsersPage } from '../pages/UsersPage';
 import React from 'react';
 
+
 export interface RouteConfig {
   path: string;
   isProtected: boolean;
@@ -30,11 +31,20 @@ export const APP_ROUTES: RouteConfig[] = [
     hideInMenu: true,
   },
   {
+    path: '/reset-password',
+    element: ResetPasswordPage,
+    isProtected: true,
+    permissions: [UserRole.USER, UserRole.MANAGER, UserRole.ADMIN],
+    hideInMenu: true,
+  },
+  {
     path: '/',
     isProtected: true,
     permissions: [UserRole.USER, UserRole.MANAGER, UserRole.ADMIN],
     element: Dashboard,
     label: 'Dashboard',
+
+
   },
   {
     path: '/tasks',
@@ -42,12 +52,15 @@ export const APP_ROUTES: RouteConfig[] = [
     permissions: [UserRole.USER, UserRole.MANAGER, UserRole.ADMIN],
     element: TasksPage,
     label: 'Tasks',
+
   },
   {
     path: '/tasks/create',
     isProtected: true,
     permissions: [UserRole.MANAGER, UserRole.ADMIN],
+
     element: TasksPage,
+
     hideInMenu: true,
   },
   {
@@ -64,4 +77,5 @@ export const APP_ROUTES: RouteConfig[] = [
     element: AuditLogPage,
     label: 'Audit Log',
   },
+
 ];

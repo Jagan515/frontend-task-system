@@ -16,6 +16,7 @@ interface JWTPayload {
   name?: string;
   email?: string;
   role?: string;
+  passwordResetRequired?: boolean;
 }
 
 export const initializeAuth = createAsyncThunk('auth/initialize', async () => {
@@ -67,6 +68,7 @@ const parseToken = (token: string): User | null => {
       id: typeof idVal === 'string' ? parseInt(idVal, 10) : idVal,
       email: decoded.email || decoded.name || '',
       role: (role as UserRole) || UserRole.USER,
+
     };
   } catch {
     return null;
