@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../api/axios';
-import { UserRole, UserRoleLabels } from '../types/auth';
+import { useSelector } from 'react-redux';
+import api, { extractErrorMessage } from '../api/axios';
+import { UserRole } from '../types/auth';
+import type { RootState } from '../store';
 
 import './Auth.css';
 
@@ -21,6 +23,13 @@ export const SignupPage: React.FC = () => {
   const [isFormValid, setIsFormValid] = useState(false);
 
   const navigate = useNavigate();
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   // Real-time validation
   useEffect(() => {
@@ -70,20 +79,15 @@ export const SignupPage: React.FC = () => {
     setErrors(prev => ({ ...prev, general: undefined }));
 
     try {
-      // Note: Adjust the endpoint as per your backend implementation
-
       await api.post('/signup', {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
-        role: formData.role
-
       });
       navigate('/login', { state: { message: 'Account created successfully! Please log in.' } });
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: { message?: string } } } };
-      const message = error.response?.data?.error?.message || 'Signup failed. Please try again.';
+      const message = extractErrorMessage(err);
       setErrors(prev => ({ ...prev, general: message }));
     } finally {
       setIsLoading(false);
@@ -92,7 +96,7 @@ export const SignupPage: React.FC = () => {
 
   return (
     <div className="auth-container">
-      <div className="auth-card">
+      <div className="auth-card signup-card">
         <h2>Create Account</h2>
         
         {errors.general && <div className="error-message" style={{ textAlign: 'center', marginBottom: '16px' }}>{errors.general}</div>}

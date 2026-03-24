@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { UserRole } from '../types/auth';
+import { UserRole, type User } from '../types/auth';
 import type { RootState } from '../store';
 import { Modal } from './common/Modal';
-import api from '../api/axios';
+import api, { extractErrorMessage } from '../api/axios';
 import './UserModal.css';
 
 interface UserModalProps {
@@ -43,10 +43,10 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess
     setError(null);
 
     // Filter out empty optional fields to prevent backend validation issues
-    const payload: any = {
+    const payload: Partial<User> & { password?: string } = {
       email: formData.email,
       password: formData.password,
-      role: formData.role,
+      role: formData.role as UserRole,
     };
     if (formData.firstName) payload.firstName = formData.firstName;
     if (formData.lastName) payload.lastName = formData.lastName;
@@ -63,8 +63,8 @@ export const UserModal: React.FC<UserModalProps> = ({ isOpen, onClose, onSuccess
         lastName: '',
         role: currentUser?.role === UserRole.MANAGER ? UserRole.USER : UserRole.MANAGER
       });
-    } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Failed to create user');
+    } catch (err: unknown) {
+      setError(extractErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }

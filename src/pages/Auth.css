@@ -22,6 +22,10 @@
   text-align: left;
 }
 
+.auth-card.signup-card {
+  max-width: 500px;
+}
+
 .auth-card h2 {
   margin-bottom: 32px;
   text-align: center;
@@ -53,6 +57,15 @@
 .form-row .form-group {
   flex: 1;
   min-width: 0;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.form-row .form-group {
+  flex: 1;
 }
 
 .input-wrapper {

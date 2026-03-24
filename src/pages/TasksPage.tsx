@@ -2,13 +2,21 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../store';
 import { UserRole } from '../types/auth';
-import { fetchTasks, updateTask, fetchUsers, selectTask, type Task, fetchFilterPresets, saveFilterPreset, deleteFilterPreset, type FilterPreset } from '../store/slices/tasksSlice';
-import { TaskModal } from '../components/TaskModal';
+import { 
+  updateTask, 
+  selectTask, 
+  fetchInitialData,
+  type Task, 
+  saveFilterPreset, 
+  deleteFilterPreset, 
+  type FilterPreset 
+} from '../store/slices/tasksSlice';
+import { extractErrorMessage } from '../api/axios';
+import { APP_ROUTES } from '../config/routes';
 import { BulkActionBar } from '../components/BulkActionBar';
+import { TaskModal } from '../components/TaskModal';
 import { Badge } from '../components/common/Badge';
 import { EmptyState } from '../components/common/EmptyState';
-import { APP_ROUTES } from '../config/routes';
-import './Dashboard.css';
 import './TasksPage.css';
 
 // SVG Icons
@@ -80,7 +88,7 @@ const SaveIcon = () => (
 
 export const TasksPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { items: tasks, status, users, filterPresets, error: reduxError } = useSelector((state: RootState) => state.tasks);
+  const { items: tasks, filterPresets, error: reduxError } = useSelector((state: RootState) => state.tasks);
   const user = useSelector((state: RootState) => state.auth.user);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -101,23 +109,29 @@ export const TasksPage: React.FC = () => {
   const pageSize = 10;
 
   useEffect(() => {
-    if (status === 'idle') {
-      dispatch(fetchTasks());
-    }
-    if (users.length === 0) {
-      dispatch(fetchUsers());
-    }
-    dispatch(fetchFilterPresets());
-  }, [status, users.length, dispatch]);
+    const promise = dispatch(fetchInitialData());
+    
+    return () => {
+      promise.abort();
+    };
+  }, [dispatch]);
 
-  const handleComplete = (id: number) => {
-    dispatch(updateTask({ id, data: { status: 'COMPLETED' } }));
+  const handleComplete = async (id: number) => {
+    try {
+      await dispatch(updateTask({ id, data: { status: 'COMPLETED' } })).unwrap();
+    } catch (err) {
+      setLocalError(extractErrorMessage(err));
+    }
   };
 
-  const handleSnooze = (id: number, currentDueDate: string) => {
+  const handleSnooze = async (id: number, currentDueDate: string) => {
     const nextDay = new Date(currentDueDate);
     nextDay.setDate(nextDay.getDate() + 1);
-    dispatch(updateTask({ id, data: { dueDate: nextDay.toISOString() } }));
+    try {
+      await dispatch(updateTask({ id, data: { dueDate: nextDay.toISOString() } })).unwrap();
+    } catch (err) {
+      setLocalError(extractErrorMessage(err));
+    }
   };
 
   const handleSelectTask = (id: number) => {
@@ -157,13 +171,17 @@ export const TasksPage: React.FC = () => {
     );
   };
 
-  const handleSavePreset = () => {
+  const handleSavePreset = async () => {
     if (!presetName) return;
-    dispatch(saveFilterPreset({
-      name: presetName,
-      filter: { searchTerm, statusFilter, priorityFilter, dateRange }
-    }));
-    setPresetName('');
+    try {
+      await dispatch(saveFilterPreset({
+        name: presetName,
+        filter: { searchTerm, statusFilter, priorityFilter, dateRange }
+      })).unwrap();
+      setPresetName('');
+    } catch (err) {
+      setLocalError(extractErrorMessage(err));
+    }
   };
 
   const handleApplyPreset = (preset: FilterPreset) => {
@@ -173,9 +191,13 @@ export const TasksPage: React.FC = () => {
     setDateRange(preset.filter.dateRange || { start: '', end: '' });
   };
 
-  const handleRemovePreset = (e: React.MouseEvent, id: number) => {
+  const handleRemovePreset = async (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
-    dispatch(deleteFilterPreset(id));
+    try {
+      await dispatch(deleteFilterPreset(id)).unwrap();
+    } catch (err) {
+      setLocalError(extractErrorMessage(err));
+    }
   };
 
   return (
@@ -261,8 +283,8 @@ export const TasksPage: React.FC = () => {
         >
           Due Date <SortIcon direction={sortDirection} />
         </button>
-
         {user && user.role !== UserRole.USER && (APP_ROUTES.find(r => r.path === '/tasks/create')?.permissions?.includes(user.role)) && (
+
           <button 
             className="primary-btn" 
             onClick={() => setIsModalOpen(true)}
@@ -446,6 +468,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onComplete, onSnooze, onSelec
           <span className="task-title">{task.title}</span>
           <Badge label={task.priority} type={task.priority} variant="priority" />
           <Badge label={task.status} type={task.status} variant="status" />
+
         </div>
         {task.description && (
           <p className="task-description">{task.description}</p>

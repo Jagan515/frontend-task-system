@@ -16,6 +16,7 @@ interface JWTPayload {
   name?: string;
   email?: string;
   role?: string;
+  passwordResetRequired?: boolean;
 }
 
 export const initializeAuth = createAsyncThunk('auth/initialize', async () => {
@@ -37,10 +38,11 @@ export const initializeAuth = createAsyncThunk('auth/initialize', async () => {
       role: (role as UserRole) || UserRole.USER,
       username: profile.name
     } as User;
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const error = err as { response?: { status: number } };
     // Only logout if it's a 401 or 403 (unauthorized/forbidden)
     // Other errors (like 500 or network error) shouldn't necessarily kill the local session
-    if (err.response?.status === 401 || err.response?.status === 403) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
       localStorage.removeItem('token');
       return null;
     }
@@ -67,6 +69,7 @@ const parseToken = (token: string): User | null => {
       id: typeof idVal === 'string' ? parseInt(idVal, 10) : idVal,
       email: decoded.email || decoded.name || '',
       role: (role as UserRole) || UserRole.USER,
+
     };
   } catch {
     return null;

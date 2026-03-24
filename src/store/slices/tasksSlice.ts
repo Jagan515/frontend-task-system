@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
-import api from '../../api/axios';
+import api, { extractErrorMessage } from '../../api/axios';
 import { type User } from '../../types/auth';
 
 export interface Comment {
@@ -17,7 +17,7 @@ export interface AuditLog {
   entityId: number;
   action: string;
   performedBy: number;
-  details: any;
+  details: Record<string, unknown>;
   createdAt: string;
   user?: User;
 }
@@ -71,134 +71,208 @@ const initialState: TasksState = {
   selectedTaskId: null,
 };
 
-export const fetchTasks = createAsyncThunk('tasks/fetchTasks', async () => {
-  const response = await api.get('/tasks');
-  return response.data;
+export const fetchTasks = createAsyncThunk<Task[]>('tasks/fetchTasks', async (_, { rejectWithValue, signal }) => {
+  try {
+    const response = await api.get('/tasks', { signal });
+    return response.data;
+  } catch (err: unknown) {
+    return rejectWithValue(extractErrorMessage(err));
+  }
 });
 
-export const fetchUsers = createAsyncThunk('tasks/fetchUsers', async () => {
-  const response = await api.get('/users');
-  return response.data;
+export const fetchUsers = createAsyncThunk<User[]>('tasks/fetchUsers', async (_, { rejectWithValue, signal }) => {
+  try {
+    const response = await api.get('/users', { signal });
+    return response.data;
+  } catch (err: unknown) {
+    return rejectWithValue(extractErrorMessage(err));
+  }
 });
 
-export const fetchTaskComments = createAsyncThunk('tasks/fetchComments', async (taskId: number) => {
-  const response = await api.get(`/tasks/${taskId}/comments`);
-  return response.data;
+export const fetchTaskComments = createAsyncThunk<Comment[], number>('tasks/fetchComments', async (taskId, { rejectWithValue, signal }) => {
+  try {
+    const response = await api.get(`/tasks/${taskId}/comments`, { signal });
+    return response.data;
+  } catch (err: unknown) {
+    return rejectWithValue(extractErrorMessage(err));
+  }
 });
 
-export const addTaskComment = createAsyncThunk(
+export const addTaskComment = createAsyncThunk<Comment, { taskId: number; content: string }>(
   'tasks/addComment',
-  async ({ taskId, content }: { taskId: number; content: string }) => {
-    const response = await api.post(`/tasks/${taskId}/comments`, { content });
-    return response.data;
+  async ({ taskId, content }, { rejectWithValue }) => {
+    try {
+      const response = await api.post(`/tasks/${taskId}/comments`, { content });
+      return response.data;
+    } catch (err: unknown) {
+      return rejectWithValue(extractErrorMessage(err));
+    }
   }
 );
 
-export const fetchTaskHistory = createAsyncThunk('tasks/fetchHistory', async (taskId: number) => {
-  const response = await api.get(`/tasks/${taskId}/history`);
-  return response.data;
+export const fetchTaskHistory = createAsyncThunk<AuditLog[], number>('tasks/fetchHistory', async (taskId, { rejectWithValue, signal }) => {
+  try {
+    const response = await api.get(`/tasks/${taskId}/history`, { signal });
+    return response.data;
+  } catch (err: unknown) {
+    return rejectWithValue(extractErrorMessage(err));
+  }
 });
 
-export const fetchTaskAssignees = createAsyncThunk('tasks/fetchAssignees', async (taskId: number) => {
-  const response = await api.get(`/tasks/${taskId}/assignees`);
-  return response.data;
+export const fetchTaskAssignees = createAsyncThunk<number[], number>('tasks/fetchAssignees', async (taskId, { rejectWithValue, signal }) => {
+  try {
+    const response = await api.get(`/tasks/${taskId}/assignees`, { signal });
+    return response.data;
+  } catch (err: unknown) {
+    return rejectWithValue(extractErrorMessage(err));
+  }
 });
 
-export const fetchFilterPresets = createAsyncThunk('tasks/fetchFilterPresets', async () => {
-  const response = await api.get('/filter-presets');
-  return response.data;
+export const fetchFilterPresets = createAsyncThunk<FilterPreset[]>('tasks/fetchFilterPresets', async (_, { rejectWithValue, signal }) => {
+  try {
+    const response = await api.get('/filter-presets', { signal });
+    return response.data;
+  } catch (err: unknown) {
+    return rejectWithValue(extractErrorMessage(err));
+  }
 });
 
-export const saveFilterPreset = createAsyncThunk(
+export const saveFilterPreset = createAsyncThunk<FilterPreset, { name: string; filter: Record<string, unknown> }>(
   'tasks/saveFilterPreset',
-  async (data: { name: string; filter: any }) => {
-    const response = await api.post('/filter-presets', data);
-    return response.data;
+  async (data, { rejectWithValue }) => {
+    try {
+      const response = await api.post('/filter-presets', data);
+      return response.data;
+    } catch (err: unknown) {
+      return rejectWithValue(extractErrorMessage(err));
+    }
   }
 );
 
-export const deleteFilterPreset = createAsyncThunk(
+export const deleteFilterPreset = createAsyncThunk<number, number>(
   'tasks/deleteFilterPreset',
-  async (id: number) => {
-    await api.delete(`/filter-presets/${id}`);
-    return id;
+  async (id, { rejectWithValue }) => {
+    try {
+      await api.delete(`/filter-presets/${id}`);
+      return id;
+    } catch (err: unknown) {
+      return rejectWithValue(extractErrorMessage(err));
+    }
   }
 );
 
-export const updateTask = createAsyncThunk(
+export const updateTask = createAsyncThunk<{ id: number; data: Partial<Task> & { assignees?: number[]; lastUpdatedAt?: string } }, { id: number; data: Partial<Task> & { assignees?: number[]; lastUpdatedAt?: string } }>(
   'tasks/updateTask',
-  async ({ id, data }: { id: number; data: Partial<Task> & { assignees?: number[] } }) => {
-    const response = await api.patch(`/tasks/${id}`, data);
-    return { id, data: response.data || data };
+  async ({ id, data }, { rejectWithValue }) => {
+    try {
+      const response = await api.patch(`/tasks/${id}`, data);
+      return { id, data: response.data || data };
+    } catch (err: unknown) {
+      return rejectWithValue(extractErrorMessage(err));
+    }
   }
 );
 
-export const bulkUpdateTasks = createAsyncThunk(
+export const bulkUpdateTasks = createAsyncThunk<{ ids: number[]; data: Partial<Task> }, { ids: number[]; data: Partial<Task> }>(
   'tasks/bulkUpdate',
-  async ({ ids, data }: { ids: number[]; data: Partial<Task> }) => {
-    await api.patch('/tasks/bulk', { ids, data });
-    return { ids, data };
+  async ({ ids, data }, { rejectWithValue }) => {
+    try {
+      await api.patch('/tasks/bulk', { ids, data });
+      return { ids, data };
+    } catch (err: unknown) {
+      return rejectWithValue(extractErrorMessage(err));
+    }
   }
 );
 
-export const bulkDeleteTasks = createAsyncThunk(
+export const bulkDeleteTasks = createAsyncThunk<number[], number[]>(
   'tasks/bulkDelete',
-  async (ids: number[]) => {
-    await api.post('/tasks/bulk-delete', { ids });
-    return ids;
+  async (ids, { rejectWithValue }) => {
+    try {
+      await api.post('/tasks/bulk-delete', { ids });
+      return ids;
+    } catch (err: unknown) {
+      return rejectWithValue(extractErrorMessage(err));
+    }
   }
 );
 
-export const bulkAssignTasks = createAsyncThunk(
+export const bulkAssignTasks = createAsyncThunk<{ ids: number[]; userIds: number[] }, { ids: number[]; userIds: number[] }>(
   'tasks/bulkAssign',
-  async ({ ids, userIds }: { ids: number[]; userIds: number[] }) => {
-    await api.patch('/tasks/bulk-assign', { ids, userIds });
-    return { ids, userIds };
+  async ({ ids, userIds }, { rejectWithValue }) => {
+    try {
+      await api.patch('/tasks/bulk-assign', { ids, userIds });
+      return { ids, userIds };
+    } catch (err: unknown) {
+      return rejectWithValue(extractErrorMessage(err));
+    }
   }
 );
 
-export const createTask = createAsyncThunk(
+export const createTask = createAsyncThunk<Task, Omit<Task, 'id' | 'status' | 'createdAt' | 'createdBy'> & { assignees?: number[] }>(
   'tasks/createTask',
-  async (data: Omit<Task, 'id' | 'status' | 'createdAt' | 'createdBy'> & { assignees?: number[] }) => {
-    const response = await api.post('/tasks', data);
-    return response.data;
+  async (data, { rejectWithValue }) => {
+    try {
+      const response = await api.post('/tasks', data);
+      return response.data;
+    } catch (err: unknown) {
+      return rejectWithValue(extractErrorMessage(err));
+    }
   }
 );
 
-export const fetchAuditLogs = createAsyncThunk('tasks/fetchAuditLogs', async () => {
-  const response = await api.get('/audit-logs');
-  return response.data;
+export const fetchAuditLogs = createAsyncThunk<AuditLog[]>('tasks/fetchAuditLogs', async (_, { rejectWithValue, signal }) => {
+  try {
+    const response = await api.get('/audit-logs', { signal });
+    return response.data;
+  } catch (err: unknown) {
+    return rejectWithValue(extractErrorMessage(err));
+  }
 });
 
+/**
+ * Parallel initial data fetch using Promise.all per Standard #3
+ */
 export const fetchInitialData = createAsyncThunk(
   'tasks/fetchInitialData',
-  async () => {
-    const [tasksRes, usersRes, presetsRes] = await Promise.all([
-      api.get('/tasks'),
-      api.get('/users'),
-      api.get('/filter-presets')
-    ]);
-    return {
-      tasks: tasksRes.data,
-      users: usersRes.data,
-      presets: presetsRes.data
-    };
+  async (_, { rejectWithValue, signal }) => {
+    try {
+      const [tasksRes, usersRes, presetsRes] = await Promise.all([
+        api.get('/tasks', { signal }),
+        api.get('/users', { signal }),
+        api.get('/filter-presets', { signal })
+      ]);
+      return {
+        tasks: tasksRes.data as Task[],
+        users: usersRes.data as User[],
+        presets: presetsRes.data as FilterPreset[]
+      };
+    } catch (err: unknown) {
+      return rejectWithValue(extractErrorMessage(err));
+    }
   }
 );
 
-export const fetchTaskDetails = createAsyncThunk(
+/**
+ * Parallel fetching of task details (comments, history, assignees) per Standard #3
+ */
+export const fetchTaskDetails = createAsyncThunk<{ comments: Comment[]; history: AuditLog[]; assignees: number[] }, number>(
   'tasks/fetchTaskDetails',
-  async (taskId: number) => {
-    const [commentsRes, historyRes, assigneesRes] = await Promise.all([
-      api.get(`/tasks/${taskId}/comments`),
-      api.get(`/tasks/${taskId}/history`),
-      api.get(`/tasks/${taskId}/assignees`)
-    ]);
-    return {
-      comments: commentsRes.data,
-      history: historyRes.data,
-      assignees: assigneesRes.data
-    };
+  async (taskId, { rejectWithValue, signal }) => {
+    try {
+      const [commentsRes, historyRes, assigneesRes] = await Promise.all([
+        api.get(`/tasks/${taskId}/comments`, { signal }),
+        api.get(`/tasks/${taskId}/history`, { signal }),
+        api.get(`/tasks/${taskId}/assignees`, { signal })
+      ]);
+      return {
+        comments: commentsRes.data as Comment[],
+        history: historyRes.data as AuditLog[],
+        assignees: assigneesRes.data as number[]
+      };
+    } catch (err: unknown) {
+      return rejectWithValue(extractErrorMessage(err));
+    }
   }
 );
 

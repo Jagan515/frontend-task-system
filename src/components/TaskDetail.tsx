@@ -3,12 +3,12 @@ import { useSelector, useDispatch } from 'react-redux';
 import { type RootState, type AppDispatch } from '../store';
 import { 
   selectTask, 
-  fetchTaskComments, 
-  fetchTaskHistory, 
+  fetchTaskDetails, 
   addTaskComment,
   updateTask,
   type Task
 } from '../store/slices/tasksSlice';
+import { extractErrorMessage } from '../api/axios';
 import './TaskDetail.css';
 
 export const TaskDetail: React.FC = () => {
@@ -18,24 +18,43 @@ export const TaskDetail: React.FC = () => {
   const [commentText, setCommentText] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Task>>({});
+  const [prevTaskId, setPrevTaskId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Synchronize state when selectedTaskId changes
+  if (selectedTaskId !== prevTaskId) {
+    setPrevTaskId(selectedTaskId);
+    setIsEditing(false);
+    setError(null);
+  }
 
   const task = tasks.find(t => t.id === selectedTaskId);
 
   useEffect(() => {
+    let promise: { abort: () => void } | undefined;
     if (selectedTaskId) {
-      dispatch(fetchTaskComments(selectedTaskId));
-      dispatch(fetchTaskHistory(selectedTaskId));
-      setIsEditing(false);
+      promise = dispatch(fetchTaskDetails(selectedTaskId));
     }
+    
+    return () => {
+      if (promise && promise.abort) {
+        promise.abort();
+      }
+    };
   }, [selectedTaskId, dispatch]);
 
   if (!selectedTaskId || !task) return null;
 
-  const handleAddComment = (e: React.FormEvent) => {
+  const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim()) return;
-    dispatch(addTaskComment({ taskId: selectedTaskId, content: commentText }));
-    setCommentText('');
+    setError(null);
+    try {
+      await dispatch(addTaskComment({ taskId: selectedTaskId, content: commentText })).unwrap();
+      setCommentText('');
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    }
   };
 
   const startEditing = () => {
@@ -44,13 +63,32 @@ export const TaskDetail: React.FC = () => {
       description: task.description,
       priority: task.priority,
       status: task.status,
+      dueDate: task.dueDate,
     });
     setIsEditing(true);
+    setError(null);
   };
 
-  const handleUpdate = () => {
-    dispatch(updateTask({ id: task.id, data: editData }));
-    setIsEditing(false);
+  const handleUpdate = async () => {
+    setError(null);
+    
+    // Validation: Due date cannot be in the past
+    if (editData.dueDate) {
+      const dueDate = new Date(editData.dueDate);
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      if (dueDate < now) {
+        setError('Due date cannot be in the past.');
+        return;
+      }
+    }
+
+    try {
+      await dispatch(updateTask({ id: task.id, data: editData })).unwrap();
+      setIsEditing(false);
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    }
   };
 
   const getUserName = (userId: number) => {
@@ -75,6 +113,8 @@ export const TaskDetail: React.FC = () => {
           </div>
         </header>
 
+        {error && <div className="error-banner" style={{ margin: '16px', borderRadius: '4px' }}>{error}</div>}
+
         <div className="detail-content">
           <section className="info-section">
             {!isEditing ? (
@@ -84,44 +124,59 @@ export const TaskDetail: React.FC = () => {
               </>
             ) : (
               <div className="edit-form">
-                <input 
-                  className="edit-input title-input"
-                  value={editData.title}
-                  onChange={e => setEditData({...editData, title: e.target.value})}
-                />
-                <textarea 
-                  className="edit-input desc-input"
-                  value={editData.description}
-                  onChange={e => setEditData({...editData, description: e.target.value})}
-                />
+                <div className="form-group">
+                  <label>Title</label>
+                  <input 
+                    className="edit-input title-input"
+                    value={editData.title || ''}
+                    onChange={e => setEditData({...editData, title: e.target.value})}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Description</label>
+                  <textarea 
+                    className="edit-input desc-input"
+                    value={editData.description || ''}
+                    onChange={e => setEditData({...editData, description: e.target.value})}
+                  />
+                </div>
+                <div className="form-row" style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Due Date</label>
+                    <input 
+                      type="date"
+                      className="edit-input"
+                      value={editData.dueDate ? new Date(editData.dueDate).toISOString().split('T')[0] : ''}
+                      onChange={e => setEditData({...editData, dueDate: e.target.value})}
+                    />
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Status</label>
+                    <select 
+                      className="edit-input"
+                      value={editData.status} 
+                      onChange={e => setEditData({...editData, status: e.target.value as Task['status']})}
+                    >
+                      <option value="PENDING">Pending</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="COMPLETED">Completed</option>
+                      <option value="CANCELLED">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             )}
 
             <div className="meta-grid">
-              <div className="meta-item">
-                <label>Status</label>
-                {!isEditing ? (
-                  <span className={`status-badge status-${task.status?.toLowerCase()}`}>{task.status}</span>
-                ) : (
-                  <select 
-                    value={editData.status} 
-                    onChange={e => setEditData({...editData, status: e.target.value as any})}
-                  >
-                    <option value="PENDING">Pending</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="COMPLETED">Completed</option>
-                    <option value="CANCELLED">Cancelled</option>
-                  </select>
-                )}
-              </div>
               <div className="meta-item">
                 <label>Priority</label>
                 {!isEditing ? (
                   <span className={`priority-pill priority-${task.priority.toLowerCase()}`}>{task.priority}</span>
                 ) : (
                   <select 
+                    className="edit-input"
                     value={editData.priority} 
-                    onChange={e => setEditData({...editData, priority: e.target.value as any})}
+                    onChange={e => setEditData({...editData, priority: e.target.value as Task['priority']})}
                   >
                     <option value="LOW">Low</option>
                     <option value="MEDIUM">Medium</option>
@@ -129,10 +184,20 @@ export const TaskDetail: React.FC = () => {
                   </select>
                 )}
               </div>
-              <div className="meta-item">
-                <label>Due Date</label>
-                <span>{new Date(task.dueDate).toLocaleDateString()}</span>
-              </div>
+              {!isEditing && (
+                <div className="meta-item">
+                  <label>Due Date</label>
+                  <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+                </div>
+              )}
+              {!isEditing && (
+                <div className="meta-item">
+                  <label>Status</label>
+                  <span className={`status-badge status-${task.status.toLowerCase().replace('_', '-')}`}>
+                    {task.status.replace('_', ' ')}
+                  </span>
+                </div>
+              )}
               <div className="meta-item">
                 <label>Created By</label>
                 <span>{getUserName(task.createdBy)}</span>
@@ -176,18 +241,33 @@ export const TaskDetail: React.FC = () => {
                     </div>
                     {log.details && Object.keys(log.details).length > 0 && (
                       <div className="history-details">
-                        {Object.entries(log.details).map(([key, value]: [string, any]) => (
-                          <div key={key} className="history-diff">
-                            <span className="diff-key">{key}:</span>
-                            {value.old !== undefined ? (
-                              <>
-                                <span className="diff-old">{String(value.old)}</span>
-                                <span className="diff-arrow">→</span>
-                              </>
-                            ) : null}
-                            <span className="diff-new">{String(value.new)}</span>
-                          </div>
-                        ))}
+                        {Object.entries(log.details as Record<string, unknown>).map(([key, value]) => {
+                          const isObject = typeof value === 'object' && value !== null;
+                          const hasDiff = isObject && ('old' in (value as object) || 'new' in (value as object));
+                          
+                          if (hasDiff) {
+                            const diff = value as { old?: unknown; new: unknown };
+                            return (
+                              <div key={key} className="history-diff">
+                                <span className="diff-key">{key}:</span>
+                                {diff.old !== undefined ? (
+                                  <>
+                                    <span className="diff-old">{String(diff.old)}</span>
+                                    <span className="diff-arrow">→</span>
+                                  </>
+                                ) : null}
+                                <span className="diff-new">{String(diff.new)}</span>
+                              </div>
+                            );
+                          }
+                          
+                          return (
+                            <div key={key} className="history-diff">
+                              <span className="diff-key">{key}:</span>
+                              <span className="diff-new">{String(value)}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

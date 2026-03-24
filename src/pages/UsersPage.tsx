@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../store';
 import { fetchUsers } from '../store/slices/tasksSlice';
@@ -74,14 +75,16 @@ export const UsersPage: React.FC = () => {
     }
   };
 
-  const filteredUsers = users.filter(u => {
-    const matchesSearch = u.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (u.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-                          (u.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-                          (u.username?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
-    const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
+  const filteredUsers = useMemo(() => {
+    return users.filter(u => {
+      const matchesSearch = u.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            (u.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+                            (u.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+                            (u.username?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
+      const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
+      return matchesSearch && matchesRole;
+    });
+  }, [users, searchTerm, roleFilter]);
 
   const canAddMember = currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.MANAGER;
 

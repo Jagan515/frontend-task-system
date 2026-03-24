@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import api from '../api/axios';
+import { useDispatch, useSelector } from 'react-redux';
+import api, { extractErrorMessage } from '../api/axios';
 import { login } from '../store/slices/authSlice';
+import type { RootState } from '../store';
 import './Auth.css';
 
 export const LoginPage: React.FC = () => {
@@ -15,6 +16,13 @@ export const LoginPage: React.FC = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   // Real-time validation
   useEffect(() => {
@@ -41,11 +49,11 @@ export const LoginPage: React.FC = () => {
 
     try {
       const res = await api.post('/login', { email, password });
-      dispatch(login(res.data.token));
+      const { token } = res.data;
+      dispatch(login(token));
       navigate('/');
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: { message?: string } } } };
-      const message = error.response?.data?.error?.message || 'Login failed. Please check your credentials.';
+      const message = extractErrorMessage(err);
       setErrors(prev => ({ ...prev, general: message }));
     } finally {
       setIsLoading(false);
@@ -98,10 +106,6 @@ export const LoginPage: React.FC = () => {
               </button>
             </div>
             {errors.password && <div className="error-message">{errors.password}</div>}
-          </div>
-
-          <div className="forgot-password">
-            <Link to="/forgot-password">Forgot password?</Link>
           </div>
 
           <button 

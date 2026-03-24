@@ -58,6 +58,7 @@ export const Header: React.FC<HeaderProps> = ({ title }) => {
                 <span className="user-name">
                   {user?.username || (user?.firstName ? `${user.firstName} ${user.lastName || ''}` : user?.email?.split('@')[0])}
                 </span>
+
                 <span className="user-role-badge">
                   {user ? UserRoleLabels[user.role] : ''}
                 </span>
